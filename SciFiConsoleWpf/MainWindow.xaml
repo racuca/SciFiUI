@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SciFiConsoleWpf"
+        xmlns:gmap="clr-namespace:GMap.NET.WindowsPresentation;assembly=GMap.NET.WindowsPresentation"
         mc:Ignorable="d"
         Title="SCIFICONSOLE" Height="800" Width="1600" WindowState="Maximized" WindowStyle="SingleBorderWindow" ResizeMode="NoResize" Background="#050A12">
     <Window.Resources>
@@ -42,43 +43,51 @@
         <Storyboard x:Key="UiAnimations">
             <!-- 레이더 링 움직임 -->
             <DoubleAnimation
-                Storyboard.TargetName="RadarCircle"
+                Storyboard.TargetName="RadarCircle1"
+                Storyboard.TargetProperty="StrokeDashOffset"
+                From="0" To="15"
+                Duration="0:0:1"
+                RepeatBehavior="Forever"/>
+
+            <DoubleAnimation
+                Storyboard.TargetName="RadarCircle2"
+                Storyboard.TargetProperty="StrokeDashOffset"
+                From="0" To="20"
+                Duration="0:0:1.6"
+                RepeatBehavior="Forever"/>
+
+            <DoubleAnimation
+                Storyboard.TargetName="RadarCircle3"
                 Storyboard.TargetProperty="StrokeDashOffset"
                 From="0" To="30"
                 Duration="0:0:1"
-                RepeatBehavior="Forever" />
-            <!-- 링크 LED 깜빡임 -->
+                RepeatBehavior="Forever"/>
+
+            <!-- FOV 스캐닝 애니메이션 -->
             <DoubleAnimation
-                Storyboard.TargetName="LinkLed"
-                Storyboard.TargetProperty="Opacity"
-                From="1.0" To="0.2"
-                AutoReverse="True"
-                Duration="0:0:0.8"
-                RepeatBehavior="Forever" />
-            <!-- FOV 삼각형 좌우로 천천히 스윕 -->
-            <DoubleAnimation
-                Storyboard.TargetName="FovRotate"
+                Storyboard.TargetName="FovRotateAnim"
                 Storyboard.TargetProperty="Angle"
                 From="-20" To="20"
                 Duration="0:0:1.8"
                 AutoReverse="True"
-                RepeatBehavior="Forever" />
-            <!-- 타겟 점이 살짝 흔들리는 효과 (X/Y 둘 다) -->
-            <DoubleAnimation
-                Storyboard.TargetName="TargetTransform"
-                Storyboard.TargetProperty="X"
-                From="260" To="280"
-                Duration="0:0:3"
-                AutoReverse="True"
-                RepeatBehavior="Forever" />
+                RepeatBehavior="Forever"/>
 
+            <!-- 타겟 흔들림 애니메이션 (LayerAnimation 전용) -->
             <DoubleAnimation
-                Storyboard.TargetName="TargetTransform"
-                Storyboard.TargetProperty="Y"
-                From="40" To="60"
+                Storyboard.TargetName="TargetAnimTransform"
+                Storyboard.TargetProperty="X"
+                From="80" To="100"
                 Duration="0:0:2.5"
                 AutoReverse="True"
-                RepeatBehavior="Forever" />
+                RepeatBehavior="Forever"/>
+
+            <DoubleAnimation
+                Storyboard.TargetName="TargetAnimTransform"
+                Storyboard.TargetProperty="Y"
+                From="-60" To="-30"
+                Duration="0:0:2"
+                AutoReverse="True"
+                RepeatBehavior="Forever"/>
         </Storyboard>
         <Style x:Key="SciFiButton" TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
@@ -235,54 +244,146 @@
         <!-- ========== 중앙 패널 (지도/메인 화면) ========== -->
         <Border Grid.Row="1" Grid.Column="1" Margin="4,0,4,0"
                 Style="{StaticResource ModulePanel}">
-            <Grid>
-                <!-- 배경 격자 -->
-                <Rectangle Fill="#0A101C" />
-                <Rectangle Stroke="#222C3C" StrokeThickness="1" Margin="20"/>
-                <!-- 메인 캔버스: 타겟, 레이더, FOV 등을 올릴 공간 -->
-                <Canvas x:Name="MainCanvas">
+            <Grid x:Name="CentralPanelRoot">
+                <!-- ========== Layer 0 : Default SF Animation Screen ========== -->
+                <Grid x:Name="LayerAnimation">
                     <!-- 레이더 중심점 -->
-                    <Ellipse Width="8" Height="8" Fill="#00E4FF"
-                     Canvas.Left="196" Canvas.Top="116"/>
+                    <Ellipse Width="10" Height="10"
+                         Fill="#00E4FF"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
 
-                    <!-- 레이더 원 3개 (중심 기준 대략 값) -->
-                    <Ellipse Width="80" Height="80"
-                     Stroke="#00E4FF" StrokeThickness="1"
-                     StrokeDashArray="4 2"
-                     Canvas.Left="160" Canvas.Top="80"/>
-                    <Ellipse Width="140" Height="140"
-                     Stroke="#33465C" StrokeThickness="1"
-                     StrokeDashArray="4 2"
-                     Canvas.Left="130" Canvas.Top="50"/>
-                    <Ellipse x:Name="RadarCircle"
-                     Width="210" Height="210"
-                     Stroke="#00E4FF" StrokeThickness="1"
-                     StrokeDashArray="6 3"
-                     Canvas.Left="95" Canvas.Top="15"/>
+                    <!-- 레이더 원 1 -->
+                    <Ellipse Width="120" Height="120"
+                         Stroke="#00E4FF" StrokeThickness="1"
+                         StrokeDashArray="4 2"
+                         x:Name="RadarCircle1"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
 
-                    <!-- 카메라 시야각(FOV) 쐐기 모양 -->
-                    <Polygon x:Name="FovCone"
-                     Fill="#3318E4FF"
-                     Stroke="#18E4FF"
-                     StrokeThickness="1"
-                     Points="200,120  260,40  290,130"
-                     RenderTransformOrigin="0.5,0.5">
+                    <!-- 레이더 원 2 -->
+                    <Ellipse Width="180" Height="180"
+                         Stroke="#33465C" StrokeThickness="1"
+                         StrokeDashArray="4 2"
+                         x:Name="RadarCircle2"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+
+                    <!-- 레이더 원 3 -->
+                    <Ellipse Width="260" Height="260"
+                         Stroke="#00E4FF" StrokeThickness="1"
+                         StrokeDashArray="6 3"
+                         x:Name="RadarCircle3"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+
+                    <!-- FOV 삼각형 -->
+                    <Polygon x:Name="FovConeAnim"
+                         Fill="#3318E4FF"
+                         Stroke="#18E4FF"
+                         StrokeThickness="1"
+                         Points="0,60  40,0  80,60"
+                         RenderTransformOrigin="0.5,0.5"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center">
                         <Polygon.RenderTransform>
-                            <RotateTransform x:Name="FovRotate" Angle="-20"/>
+                            <RotateTransform x:Name="FovRotateAnim" Angle="-20"/>
                         </Polygon.RenderTransform>
-                    </Polygon>
+                     </Polygon>
 
-                    <!-- 타겟 점 -->
-                    <Ellipse x:Name="TargetDot"
-                     Width="10" Height="10"
-                     Fill="#FF4D4D"
-                     Stroke="#FFFFFF" StrokeThickness="1">
+                     <!-- 타겟 점(기본 HUD 애니메이션용) -->
+                     <Ellipse Width="12" Height="12"
+                         Fill="#FF4D4D"
+                         Stroke="White" StrokeThickness="1"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center">
                         <Ellipse.RenderTransform>
-                            <TranslateTransform x:Name="TargetTransform"
-                                        X="260" Y="40"/>
+                            <TranslateTransform x:Name="TargetAnimTransform"
+                                X="80" Y="-60"/>
                         </Ellipse.RenderTransform>
-                    </Ellipse>
-                </Canvas>
+                     </Ellipse>
+
+                     <!-- 텍스트 -->
+                     <TextBlock Text="SYSTEM READY"
+                           Foreground="{StaticResource TextPrimary}"
+                           FontSize="14" FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Bottom"
+                           Margin="0,0,0,40"/>
+                </Grid>
+
+
+                <!-- ========== Layer 1 : MAP ========== -->
+                <Grid x:Name="LayerMap" Visibility="Collapsed">
+                    <gmap:GMapControl x:Name="MapControl"
+                              MinZoom="3"
+                              MaxZoom="19"
+                              Zoom="12"
+                              MouseWheelZoomEnabled="True"
+                              MouseWheelZoomType="MousePositionWithoutCenter"
+                              CanDragMap="True" />
+
+                    <Canvas x:Name="HudOverlay" IsHitTestVisible="False">
+                        <Ellipse x:Name="TargetDot" Width="10" Height="10"
+                         Fill="#FF4D4D" Stroke="#FFFFFF" StrokeThickness="1"
+                         Visibility="Collapsed"/>
+                        <Line x:Name="TargetLine"
+                      Stroke="#00E4FF"
+                      StrokeThickness="1"
+                      StrokeDashArray="3 2"
+                      Visibility="Collapsed"/>
+                        <Border x:Name="TargetDetailBox"
+                        Width="220" Height="90"
+                        Background="#111826"
+                        BorderBrush="#00E4FF"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Padding="6"
+                        Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="TARGET DETAIL"
+                                   Foreground="{StaticResource TextPrimary}"
+                                   FontSize="11" FontWeight="Bold"/>
+                                <TextBlock x:Name="txtTargetGps"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   FontSize="10"/>
+                                <TextBlock x:Name="txtTargetSummary"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   FontSize="10"/>
+                            </StackPanel>
+                        </Border>
+                    </Canvas>
+                </Grid>
+
+
+                <!-- ========== Layer 2 : VIDEO ========== -->
+                <Grid x:Name="LayerVideo" Visibility="Collapsed">
+                    <Border BorderBrush="#00E4FF" BorderThickness="1">
+                        <!-- 나중에 GStreamer, VLCSharp, FFmpeg 넣을 자리 -->
+                        <TextBlock Text="VIDEO STREAM HERE"
+                           Foreground="{StaticResource TextPrimary}"
+                           FontSize="20"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+
+
+                <!-- ========== Overlay Buttons (Always shown) ========== -->
+                <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,0,0,0">
+                    <Button Content="ANIMATION" Click="btnShowAnim_Click"
+                    Style="{StaticResource SciFiButton}"
+                    Width="120"/>
+                    <Button Content="MAP" Click="btnShowMap_Click"
+                    Style="{StaticResource SciFiButton}"
+                    Width="80"/>
+                    <Button Content="VIDEO" Click="btnShowVideo_Click"
+                    Style="{StaticResource SciFiButton}"
+                    Width="80"/>
+                </StackPanel>
 
 
                 <!-- 좌상단 제목 -->
