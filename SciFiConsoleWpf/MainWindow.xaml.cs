@@ -3,6 +3,7 @@ using GMap.NET.MapProviders;
 using GMap.NET.WindowsPresentation;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,6 +40,26 @@ namespace SciFiConsoleWpf
         private double _targetLng;
 
 
+
+        private class TargetDetail
+        {
+            public Border Box;
+            public Line Line;
+            public GMapControl MiniMap;
+            public PointLatLng LatLng;
+            public bool OnLeftSide;
+        }
+
+        private readonly List<TargetDetail> _detailBoxes = new List<TargetDetail>();
+
+        // 상수
+        private const double DetailBoxWidth = 260;
+        private const double DetailBoxHeight = 160;
+        private const double DetailBoxMargin = 20;
+        private const double DetailBoxGap = 10;
+
+        private Storyboard _uiStoryboard;   // 애니메이션 저장용 필드
+
         public MainWindow()
         {
             InitializeComponent();
@@ -46,14 +67,58 @@ namespace SciFiConsoleWpf
             InitMap();
 
             // 1) UI 애니메이션 시작
-            var sb = (Storyboard)FindResource("UiAnimations");
-            sb.Begin(this, true);
+            _uiStoryboard = (Storyboard)FindResource("UiAnimations");
+            _uiStoryboard.Begin(this, true);
 
             // 2) 시계/진행률 타이머 설정
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += _timer_Tick;
             _timer.Start();
+        }
+
+
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            // 1) 타이머 정지
+            if (_timer != null)
+            {
+                _timer.Stop();
+                _timer.Tick -= _timer_Tick;
+                _timer = null;
+            }
+
+            // 2) 애니메이션 정지
+            if (_uiStoryboard != null)
+            {
+                _uiStoryboard.Stop(this);
+                _uiStoryboard = null;
+            }
+
+            // 3) GMap 정리
+            if (MapControl != null)
+            {
+                // 이벤트 핸들러 해제
+                MapControl.MouseLeftButtonDown -= MapControl_MouseLeftButtonDown;
+                MapControl.OnMapDrag -= MapControl_OnMapDrag;
+                MapControl.OnMapZoomChanged -= MapControl_OnMapZoomChanged;
+
+                // 타일 캐싱/네트워크 작업 정리
+                try
+                {
+                    MapControl.Manager.CancelTileCaching();
+                    MapControl.Manager.Mode = AccessMode.CacheOnly;
+                }
+                catch { /* 무시해도 됨 */ }
+
+                // WPF용 컨트롤에 Dispose() 있으면 호출해주고, 없으면 생략
+                (MapControl as IDisposable)?.Dispose();
+            }
+
+            // 4) 혹시 남아 있는 다른 Thread / Task 있으면 여기서 정리
+
+            // 마지막으로 애플리케이션 정리
+            Application.Current.Shutdown();  // 이 줄은 선택이지만, 확실하게 끝낼 수 있음
         }
 
 
@@ -84,97 +149,307 @@ namespace SciFiConsoleWpf
             // 화면 좌표 → 위도/경도
             var latLng = MapControl.FromLocalToLatLng((int)p.X, (int)p.Y);
 
-            _hasTarget = true;
-            _targetLat = latLng.Lat;
-            _targetLng = latLng.Lng;
+            CreateDetailBox(latLng, p);
+            UpdateDetailLines();
 
-            txtTargetGps.Text = $"LAT: {_targetLat:F6}   LON: {_targetLng:F6}";
-            txtTargetSummary.Text = "AI SUMMARY: Object detected (dummy)";
-
-            UpdateTargetOverlay();
         }
 
         private void MapControl_OnMapDrag()
         {
-            UpdateTargetOverlay();
+            UpdateDetailBoxesVisibility();
+            UpdateDetailLines();
         }
 
         private void MapControl_OnMapZoomChanged()
         {
-            UpdateTargetOverlay();
+            UpdateDetailBoxesVisibility();
+            UpdateDetailLines();
         }
 
 
-        private void UpdateTargetOverlay()
+        private void CreateDetailBox(PointLatLng latLng, Point clickPoint)
         {
-            if (!_hasTarget)
-            {
-                TargetDot.Visibility = Visibility.Collapsed;
-                TargetLine.Visibility = Visibility.Collapsed;
-                TargetDetailBox.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            // 현재 지도에 보이는 영역 (위도/경도 범위)
-            var view = MapControl.ViewArea;
-            if (view.IsEmpty)
-                return;
-
-            // 타겟이 화면 영역 안에 있는지 체크
-            bool inside =
-                _targetLat <= view.Top &&
-                _targetLat >= view.Bottom &&
-                _targetLng >= view.Left &&
-                _targetLng <= view.Right;
-
-            if (!inside)
-            {
-                // 요구사항 3번: 화면에서 벗어나면 상세박스/선 숨김
-                TargetDot.Visibility = Visibility.Collapsed;
-                TargetLine.Visibility = Visibility.Collapsed;
-                TargetDetailBox.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            // (1) 타겟의 스크린 좌표 계산 (간단한 선형 변환)
+            // 1) 박스를 왼쪽/오른쪽 어느쪽에 둘지 결정
             double mapWidth = MapControl.ActualWidth;
             double mapHeight = MapControl.ActualHeight;
 
-            double xNorm = (_targetLng - view.Left) / (view.Right - view.Left);    // 0~1
-            double yNorm = (view.Top - _targetLat) / (view.Top - view.Bottom);     // 0~1
+            bool placeOnRight = clickPoint.X < mapWidth / 2.0; // 클릭이 왼쪽이면 오른쪽에 박스
+            double finalX = placeOnRight
+                ? mapWidth - DetailBoxWidth - DetailBoxMargin
+                : DetailBoxMargin;
 
-            double x = xNorm * mapWidth;
-            double y = yNorm * mapHeight;
+            // 같은 쪽에 이미 있는 박스 개수만큼 아래로 쌓기
+            int indexOnSide = 0;
+            foreach (var d in _detailBoxes)
+            {
+                if (d.OnLeftSide == !placeOnRight)
+                    indexOnSide++;
+            }
 
-            // 타겟 점 위치
-            Canvas.SetLeft(TargetDot, x - TargetDot.Width / 2);
-            Canvas.SetTop(TargetDot, y - TargetDot.Height / 2);
-            TargetDot.Visibility = Visibility.Visible;
+            double finalY = DetailBoxMargin + indexOnSide * (DetailBoxHeight + DetailBoxGap);
 
-            // (2) 상세 박스를 어느 가장자리에 둘지 결정
-            //    간단하게: 타겟이 왼쪽에 있으면 오른쪽에 박스, 오른쪽이면 왼쪽에 박스
-            double boxWidth = TargetDetailBox.Width;
-            double boxHeight = TargetDetailBox.Height;
+            // 2) 선(Line) 만들기 (시작은 클릭 좌표 → 나중에 애니메이션으로 박스 중심까지 이동)
+            var line = new Line
+            {
+                Stroke = new SolidColorBrush(Color.FromRgb(0x11, 0x14, 0x1F)),
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 3, 2 },
+                X1 = clickPoint.X,
+                Y1 = clickPoint.Y,
+                X2 = clickPoint.X,
+                Y2 = clickPoint.Y
+            };
+            HudOverlay.Children.Add(line);
 
-            double margin = 20;
-            double boxX;
-            if (x < mapWidth / 2)
-                boxX = mapWidth - boxWidth - margin;  // 오른쪽
-            else
-                boxX = margin;                         // 왼쪽
+            // 3) 상세박스(Border) + 내부 UI 구성
+            var box = new Border
+            {
+                Width = 20,   // 처음엔 작게
+                Height = 20,
+                Background = (Brush)FindResource("BgMain"),
+                BorderBrush = (Brush)FindResource("PanelBorder"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(6)
+            };
 
-            double boxY = margin; // 일단 위쪽에 고정 (나중에 세로도 계산 가능)
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 타이틀줄
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 텍스트
+            grid.RowDefinitions.Add(new RowDefinition());                            // 미니맵
 
-            Canvas.SetLeft(TargetDetailBox, boxX);
-            Canvas.SetTop(TargetDetailBox, boxY);
-            TargetDetailBox.Visibility = Visibility.Visible;
+            // 타이틀 + 닫기 버튼
+            var titlePanel = new DockPanel();
+            var title = new TextBlock
+            {
+                Text = "TARGET DETAIL",
+                Foreground = (Brush)FindResource("TextPrimary"),
+                FontSize = 11,
+                FontWeight = FontWeights.Bold
+            };
+            DockPanel.SetDock(title, Dock.Left);
+            titlePanel.Children.Add(title);
 
-            // (3) 타겟 → 상세박스 연결선
-            TargetLine.X1 = x;
-            TargetLine.Y1 = y;
-            TargetLine.X2 = boxX + boxWidth / 2;
-            TargetLine.Y2 = boxY + boxHeight / 2;
-            TargetLine.Visibility = Visibility.Visible;
+            var closeBtn = new Button
+            {
+                Content = "X",
+                Width = 18,
+                Height = 18,
+                Margin = new Thickness(4, 0, 0, 0),
+                Style = (Style)FindResource("SciFiButton")  // 기존 SF 버튼 스타일 재사용
+            };
+            closeBtn.FontSize = 10;
+            DockPanel.SetDock(closeBtn, Dock.Right);
+            titlePanel.Children.Add(closeBtn);
+            Grid.SetRow(titlePanel, 0);
+            grid.Children.Add(titlePanel);
+
+            // 텍스트 (GPS / 요약)
+            var textPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 4, 0, 4) };
+            var gpsText = new TextBlock
+            {
+                Foreground = (Brush)FindResource("TextSecondary"),
+                FontSize = 10,
+                Text = $"LAT: {latLng.Lat:F6}   LON: {latLng.Lng:F6}"
+            };
+            var summaryText = new TextBlock
+            {
+                Foreground = (Brush)FindResource("TextSecondary"),
+                FontSize = 10,
+                Text = "AI SUMMARY: (dummy)",
+                TextWrapping = TextWrapping.Wrap
+            };
+            textPanel.Children.Add(gpsText);
+            textPanel.Children.Add(summaryText);
+            Grid.SetRow(textPanel, 1);
+            grid.Children.Add(textPanel);
+
+            // 미니맵 (2번 요구사항: 더 줌 인된 지도)
+            var miniMap = new GMapControl
+            {
+                MapProvider = MapControl.MapProvider,
+                MinZoom = 3,
+                MaxZoom = 19,
+                Position = latLng,
+                Zoom = Math.Min(MapControl.Zoom + 2, 18), // 현재보다 더 IN
+                ShowCenter = false,
+                CanDragMap = false,
+                MouseWheelZoomEnabled = false
+            };
+            Grid.SetRow(miniMap, 2);
+            grid.Children.Add(miniMap);
+
+            box.Child = grid;
+
+            // Canvas에 초기 위치(클릭 지점)로 추가
+            HudOverlay.Children.Add(box);
+            Canvas.SetLeft(box, clickPoint.X);
+            Canvas.SetTop(box, clickPoint.Y);
+
+            // TargetDetail 구조체에 담아 관리
+            var detail = new TargetDetail
+            {
+                Box = box,
+                Line = line,
+                MiniMap = miniMap,
+                LatLng = latLng,
+                OnLeftSide = !placeOnRight
+            };
+            _detailBoxes.Add(detail);
+
+            // 닫기 버튼 동작
+            closeBtn.Click += (s, e) => CloseDetailBox(detail);
+
+            // 4) 애니메이션: 클릭 지점 → 가장자리 / 작게 → 최종 크기로
+            AnimateDetailBox(detail, clickPoint, new Point(finalX, finalY));
+        }
+
+
+        private void AnimateDetailBox(TargetDetail detail, Point fromPoint, Point toPoint)
+        {
+            var box = detail.Box;
+            var line = detail.Line;
+
+            double durationMs = 400;
+
+            var sb = new Storyboard();
+
+            // 박스 이동 애니메이션 ------------------------
+            var animLeft = new DoubleAnimation
+            {
+                From = fromPoint.X,
+                To = toPoint.X,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animLeft, box);
+            Storyboard.SetTargetProperty(animLeft, new PropertyPath("(Canvas.Left)"));
+            sb.Children.Add(animLeft);
+
+            var animTop = new DoubleAnimation
+            {
+                From = fromPoint.Y,
+                To = toPoint.Y,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animTop, box);
+            Storyboard.SetTargetProperty(animTop, new PropertyPath("(Canvas.Top)"));
+            sb.Children.Add(animTop);
+
+            // 박스 크기 애니메이션 ------------------------
+            var animWidth = new DoubleAnimation
+            {
+                From = 20,
+                To = DetailBoxWidth,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animWidth, box);
+            Storyboard.SetTargetProperty(animWidth, new PropertyPath("Width"));
+            sb.Children.Add(animWidth);
+
+            var animHeight = new DoubleAnimation
+            {
+                From = 20,
+                To = DetailBoxHeight,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animHeight, box);
+            Storyboard.SetTargetProperty(animHeight, new PropertyPath("Height"));
+            sb.Children.Add(animHeight);
+
+            // 선(Line) 애니메이션 ------------------------
+            var animLineX2 = new DoubleAnimation
+            {
+                From = fromPoint.X,
+                To = toPoint.X + DetailBoxWidth / 2,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animLineX2, line);
+            Storyboard.SetTargetProperty(animLineX2, new PropertyPath("X2"));
+            sb.Children.Add(animLineX2);
+
+            var animLineY2 = new DoubleAnimation
+            {
+                From = fromPoint.Y,
+                To = toPoint.Y + DetailBoxHeight / 2,
+                Duration = TimeSpan.FromMilliseconds(durationMs),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animLineY2, line);
+            Storyboard.SetTargetProperty(animLineY2, new PropertyPath("Y2"));
+            sb.Children.Add(animLineY2);
+
+            sb.Begin();
+        }
+
+
+        private void CloseDetailBox(TargetDetail detail)
+        {
+            HudOverlay.Children.Remove(detail.Box);
+            HudOverlay.Children.Remove(detail.Line);
+            _detailBoxes.Remove(detail);
+
+            // 남아 있는 박스들 다시 정렬해도 되고 (선택 사항)
+            //RearrangeDetailBoxes();
+        }
+
+        private void UpdateDetailBoxesVisibility()
+        {
+            var view = MapControl.ViewArea;
+            if (view.IsEmpty) return;
+
+            foreach (var d in _detailBoxes.ToArray())
+            {
+                bool inside =
+                    d.LatLng.Lat <= view.Top &&
+                    d.LatLng.Lat >= view.Bottom &&
+                    d.LatLng.Lng >= view.Left &&
+                    d.LatLng.Lng <= view.Right;
+
+                if (!inside)
+                {
+                    // 화면 영역을 벗어난 타겟 → 상세박스를 닫는다
+                    CloseDetailBox(d);
+                }
+            }
+        }
+
+        private void UpdateDetailLines()
+        {
+            if (_detailBoxes.Count == 0) return;
+            if (MapControl.ActualWidth <= 0 || MapControl.ActualHeight <= 0) return;
+
+            // 화면 중앙에 해당하는 픽셀 좌표
+            var centerPixel = MapControl.FromLatLngToLocal(MapControl.Position);
+            double w = MapControl.ActualWidth;
+            double h = MapControl.ActualHeight;
+
+            foreach (var d in _detailBoxes)
+            {
+                // 1) 타겟 위도/경도 → 맵 로컬 픽셀
+                var targetPixel = MapControl.FromLatLngToLocal(d.LatLng);
+
+                // 2) 화면 좌표로 변환
+                double x = w / 2 + (targetPixel.X - centerPixel.X);
+                double y = h / 2 + (targetPixel.Y - centerPixel.Y);
+
+                // 선의 시작점 = 타겟 화면 좌표
+                d.Line.X1 = x;
+                d.Line.Y1 = y;
+
+                // 선의 끝점 = 박스의 현재 중심 좌표
+                double boxX = Canvas.GetLeft(d.Box);
+                double boxY = Canvas.GetTop(d.Box);
+                double boxCx = boxX + d.Box.Width / 2;
+                double boxCy = boxY + d.Box.Height / 2;
+
+                d.Line.X2 = boxCx;
+                d.Line.Y2 = boxCy;
+            }
         }
 
         private void _timer_Tick(object sender, EventArgs e)
