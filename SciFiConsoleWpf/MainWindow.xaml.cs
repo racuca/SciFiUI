@@ -60,11 +60,19 @@ namespace SciFiConsoleWpf
 
         private Storyboard _uiStoryboard;   // 애니메이션 저장용 필드
 
+
+        bool mapInitialized = false;
+
+
         public MainWindow()
         {
             InitializeComponent();
 
-            InitMap();
+            // 30 fps로 애니메이션 프레임률 설정
+            Timeline.DesiredFrameRateProperty.OverrideMetadata(
+                typeof(Timeline),
+                new FrameworkPropertyMetadata(30)
+            );
 
             // 1) UI 애니메이션 시작
             _uiStoryboard = (Storyboard)FindResource("UiAnimations");
@@ -74,9 +82,41 @@ namespace SciFiConsoleWpf
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += _timer_Tick;
-            _timer.Start();
+            //_timer.Start();
         }
 
+        private void _timer_Tick(object sender, EventArgs e)
+        {
+            _tickCount++;
+
+            // 시계 업데이트
+            txtClock.Text = DateTime.Now.ToString("HH:mm:ss");
+
+            // 미션 진행률 데모 (0~100 반복)
+            _missionProgress += 0.7;
+            if (_missionProgress > 100) _missionProgress = 0;
+
+            if (MissionProgress != null)
+                MissionProgress.Value = _missionProgress;
+
+            // 3) 가짜 텔레메트리 데이터 (ALT/SPD/HDG)
+            double alt = 120 + 10 * Math.Sin(_tickCount / 10.0);
+            double spd = 45 + 5 * Math.Cos(_tickCount / 12.0);
+            double hdg = (_tickCount * 3) % 360;
+
+            txtAlt.Text = $"ALT: {alt:000}m";
+            txtSpd.Text = $"   SPD: {spd:000}kt";
+            txtHdg.Text = $"   HDG: {hdg:000}°";
+
+            // 4) 타겟 정보 텍스트 (타겟 Transform 사용)
+            //txtTargetInfo.Text = $"TGT: {TargetTransform.X:000.0} , {TargetTransform.Y:000.0}";
+
+            // 5) 3초에 한 번씩 EVENT LOG 추가
+            if (_tickCount % 6 == 0)   // 0.5초 * 6 = 3초
+            {
+                AddLogEntry("UAV#03  TELEMETRY UPDATE OK");
+            }
+        }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
@@ -143,13 +183,16 @@ namespace SciFiConsoleWpf
 
         private void MapControl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // 클릭한 지점의 화면 좌표
-            var p = e.GetPosition(MapControl);
+            // 1) 클릭 지점 (MapControl 기준)
+            var pMap = e.GetPosition(MapControl);
 
-            // 화면 좌표 → 위도/경도
-            var latLng = MapControl.FromLocalToLatLng((int)p.X, (int)p.Y);
+            // 2) 화면 좌표를 HudOverlay 기준으로 변환
+            var pOverlay = MapControl.TranslatePoint(pMap, HudOverlay);
 
-            CreateDetailBox(latLng, p);
+            // 3) 위도/경도
+            var latLng = MapControl.FromLocalToLatLng((int)pMap.X, (int)pMap.Y);
+
+            CreateDetailBox(latLng, pOverlay);
             UpdateDetailLines();
 
         }
@@ -423,25 +466,24 @@ namespace SciFiConsoleWpf
             if (_detailBoxes.Count == 0) return;
             if (MapControl.ActualWidth <= 0 || MapControl.ActualHeight <= 0) return;
 
-            // 화면 중앙에 해당하는 픽셀 좌표
-            var centerPixel = MapControl.FromLatLngToLocal(MapControl.Position);
-            double w = MapControl.ActualWidth;
-            double h = MapControl.ActualHeight;
-
             foreach (var d in _detailBoxes)
             {
-                // 1) 타겟 위도/경도 → 맵 로컬 픽셀
-                var targetPixel = MapControl.FromLatLngToLocal(d.LatLng);
+                // 1) 타겟 LatLng -> MapControl 로컬 픽셀 좌표
+                var local = MapControl.FromLatLngToLocal(d.LatLng);   // GPoint
 
-                // 2) 화면 좌표로 변환
-                double x = w / 2 + (targetPixel.X - centerPixel.X);
-                double y = h / 2 + (targetPixel.Y - centerPixel.Y);
+                // 2) MapControl 좌표계 -> HudOverlay 좌표계로 변환
+                var screen = MapControl.TranslatePoint(
+                    new Point(local.X, local.Y),
+                    HudOverlay);
 
-                // 선의 시작점 = 타겟 화면 좌표
+                double x = screen.X;
+                double y = screen.Y;
+
+                // 3) 선 시작점 = 타겟 화면 좌표
                 d.Line.X1 = x;
                 d.Line.Y1 = y;
 
-                // 선의 끝점 = 박스의 현재 중심 좌표
+                // 4) 선 끝점 = 박스 중심
                 double boxX = Canvas.GetLeft(d.Box);
                 double boxY = Canvas.GetTop(d.Box);
                 double boxCx = boxX + d.Box.Width / 2;
@@ -452,38 +494,6 @@ namespace SciFiConsoleWpf
             }
         }
 
-        private void _timer_Tick(object sender, EventArgs e)
-        {
-            _tickCount++;
-
-            // 시계 업데이트
-            txtClock.Text = DateTime.Now.ToString("HH:mm:ss");
-
-            // 미션 진행률 데모 (0~100 반복)
-            _missionProgress += 0.7;
-            if (_missionProgress > 100) _missionProgress = 0;
-
-            if (MissionProgress != null)
-                MissionProgress.Value = _missionProgress;
-
-            // 3) 가짜 텔레메트리 데이터 (ALT/SPD/HDG)
-            double alt = 120 + 10 * Math.Sin(_tickCount / 10.0);
-            double spd = 45 + 5 * Math.Cos(_tickCount / 12.0);
-            double hdg = (_tickCount * 3) % 360;
-
-            txtAlt.Text = $"ALT: {alt:000}m";
-            txtSpd.Text = $"   SPD: {spd:000}kt";
-            txtHdg.Text = $"   HDG: {hdg:000}°";
-
-            // 4) 타겟 정보 텍스트 (타겟 Transform 사용)
-            //txtTargetInfo.Text = $"TGT: {TargetTransform.X:000.0} , {TargetTransform.Y:000.0}";
-
-            // 5) 3초에 한 번씩 EVENT LOG 추가
-            if (_tickCount % 6 == 0)   // 0.5초 * 6 = 3초
-            {
-                AddLogEntry("UAV#03  TELEMETRY UPDATE OK");
-            }
-        }
 
 
         private void AddLogEntry(string message)
@@ -540,16 +550,25 @@ namespace SciFiConsoleWpf
         private void btnShowAnim_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerAnimation);
+            _uiStoryboard.Begin(this, true);  // 시작
         }
 
         private void btnShowMap_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerMap);
+            _uiStoryboard.Stop(this);         // 중단
+
+            if (!mapInitialized)
+            {
+                InitMap();
+                mapInitialized = true;
+            }
         }
 
         private void btnShowVideo_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerVideo);
+            _uiStoryboard.Stop(this);         // 중단
         }
     }
 }
