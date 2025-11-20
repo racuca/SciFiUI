@@ -324,7 +324,7 @@
                               MouseWheelZoomType="MousePositionWithoutCenter"
                               CanDragMap="True" />
 
-                    <Canvas x:Name="HudOverlay" IsHitTestVisible="False"/>
+                    <Canvas x:Name="HudOverlay" IsHitTestVisible="True"/>
 
 
                 </Grid>

@@ -193,7 +193,6 @@ namespace SciFiConsoleWpf
             var latLng = MapControl.FromLocalToLatLng((int)pMap.X, (int)pMap.Y);
 
             CreateDetailBox(latLng, pOverlay);
-            UpdateDetailLines();
 
         }
 
@@ -236,11 +235,11 @@ namespace SciFiConsoleWpf
             {
                 Stroke = new SolidColorBrush(Color.FromRgb(0x11, 0x14, 0x1F)),
                 StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection { 3, 2 },
-                X1 = clickPoint.X,
-                Y1 = clickPoint.Y,
-                X2 = clickPoint.X,
-                Y2 = clickPoint.Y
+                StrokeDashArray = new DoubleCollection { 3, 2 }
+                //X1 = clickPoint.X,
+                //Y1 = clickPoint.Y,
+                //X2 = clickPoint.X,
+                //Y2 = clickPoint.Y
             };
             HudOverlay.Children.Add(line);
 
@@ -343,21 +342,45 @@ namespace SciFiConsoleWpf
             // 닫기 버튼 동작
             closeBtn.Click += (s, e) => CloseDetailBox(detail);
 
+            // ⭐ 여기서 선의 좌표를 "타겟 LatLng 기준"으로 한 번 세팅
+            SetInitialLine(detail, new Point(finalX, finalY));
+
             // 4) 애니메이션: 클릭 지점 → 가장자리 / 작게 → 최종 크기로
             AnimateDetailBox(detail, clickPoint, new Point(finalX, finalY));
         }
 
 
+        private void SetInitialLine(TargetDetail detail, Point finalBoxPos)
+        {
+            // 1) 타겟 LatLng -> MapControl 로컬 픽셀
+            var local = MapControl.FromLatLngToLocal(detail.LatLng);
+
+            // 2) MapControl → HudOverlay 좌표로 변환
+            var screen = MapControl.TranslatePoint(new Point(local.X, local.Y), HudOverlay);
+
+            double x = screen.X;
+            double y = screen.Y;
+
+            // 3) 선 시작점 = 타겟 화면 좌표
+            detail.Line.X1 = x;
+            detail.Line.Y1 = y;
+
+            // 4) 선 끝점 = 최종 박스 중심
+            double boxCx = finalBoxPos.X + DetailBoxWidth / 2;
+            double boxCy = finalBoxPos.Y + DetailBoxHeight / 2;
+
+            detail.Line.X2 = boxCx;
+            detail.Line.Y2 = boxCy;
+        }
+
         private void AnimateDetailBox(TargetDetail detail, Point fromPoint, Point toPoint)
         {
             var box = detail.Box;
-            var line = detail.Line;
-
             double durationMs = 400;
 
             var sb = new Storyboard();
 
-            // 박스 이동 애니메이션 ------------------------
+            // Canvas.Left
             var animLeft = new DoubleAnimation
             {
                 From = fromPoint.X,
@@ -369,6 +392,7 @@ namespace SciFiConsoleWpf
             Storyboard.SetTargetProperty(animLeft, new PropertyPath("(Canvas.Left)"));
             sb.Children.Add(animLeft);
 
+            // Canvas.Top
             var animTop = new DoubleAnimation
             {
                 From = fromPoint.Y,
@@ -380,7 +404,7 @@ namespace SciFiConsoleWpf
             Storyboard.SetTargetProperty(animTop, new PropertyPath("(Canvas.Top)"));
             sb.Children.Add(animTop);
 
-            // 박스 크기 애니메이션 ------------------------
+            // Width
             var animWidth = new DoubleAnimation
             {
                 From = 20,
@@ -392,6 +416,7 @@ namespace SciFiConsoleWpf
             Storyboard.SetTargetProperty(animWidth, new PropertyPath("Width"));
             sb.Children.Add(animWidth);
 
+            // Height
             var animHeight = new DoubleAnimation
             {
                 From = 20,
@@ -403,30 +428,8 @@ namespace SciFiConsoleWpf
             Storyboard.SetTargetProperty(animHeight, new PropertyPath("Height"));
             sb.Children.Add(animHeight);
 
-            // 선(Line) 애니메이션 ------------------------
-            var animLineX2 = new DoubleAnimation
-            {
-                From = fromPoint.X,
-                To = toPoint.X + DetailBoxWidth / 2,
-                Duration = TimeSpan.FromMilliseconds(durationMs),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-            Storyboard.SetTarget(animLineX2, line);
-            Storyboard.SetTargetProperty(animLineX2, new PropertyPath("X2"));
-            sb.Children.Add(animLineX2);
-
-            var animLineY2 = new DoubleAnimation
-            {
-                From = fromPoint.Y,
-                To = toPoint.Y + DetailBoxHeight / 2,
-                Duration = TimeSpan.FromMilliseconds(durationMs),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            };
-            Storyboard.SetTarget(animLineY2, line);
-            Storyboard.SetTargetProperty(animLineY2, new PropertyPath("Y2"));
-            sb.Children.Add(animLineY2);
-
             sb.Begin();
+
         }
 
 
