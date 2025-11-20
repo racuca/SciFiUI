@@ -1,0 +1,395 @@
+﻿<Window x:Class="SciFiConsoleWpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SciFiConsoleWpf"
+        mc:Ignorable="d"
+        Title="SCIFICONSOLE" Height="800" Width="1600" WindowState="Maximized" WindowStyle="SingleBorderWindow" ResizeMode="NoResize" Background="#050A12">
+    <Window.Resources>
+        <!-- 색상 팔레트 -->
+        <SolidColorBrush x:Key="BgMain" Color="#050A12" />
+        <SolidColorBrush x:Key="PanelBorder" Color="#00E4FF" />
+        <SolidColorBrush x:Key="TextPrimary" Color="#C0E8FF" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#7689A0" />
+        <SolidColorBrush x:Key="AccentWarn" Color="#FF4D4D" />
+
+        <!-- 패널 공통 스타일 -->
+        <Style x:Key="ModulePanel" TargetType="Border">
+            <Setter Property="Background" Value="#111826"/>
+            <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#00E4FF"
+                                      BlurRadius="15"
+                                      ShadowDepth="0"
+                                      Opacity="0.35"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 작은 라벨 텍스트 -->
+        <Style x:Key="TinyLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+        <!-- 기존 브러시/스타일 밑에 추가 -->
+        <Storyboard x:Key="UiAnimations">
+            <!-- 레이더 링 움직임 -->
+            <DoubleAnimation
+                Storyboard.TargetName="RadarCircle"
+                Storyboard.TargetProperty="StrokeDashOffset"
+                From="0" To="30"
+                Duration="0:0:1"
+                RepeatBehavior="Forever" />
+            <!-- 링크 LED 깜빡임 -->
+            <DoubleAnimation
+                Storyboard.TargetName="LinkLed"
+                Storyboard.TargetProperty="Opacity"
+                From="1.0" To="0.2"
+                AutoReverse="True"
+                Duration="0:0:0.8"
+                RepeatBehavior="Forever" />
+            <!-- FOV 삼각형 좌우로 천천히 스윕 -->
+            <DoubleAnimation
+                Storyboard.TargetName="FovRotate"
+                Storyboard.TargetProperty="Angle"
+                From="-20" To="20"
+                Duration="0:0:1.8"
+                AutoReverse="True"
+                RepeatBehavior="Forever" />
+            <!-- 타겟 점이 살짝 흔들리는 효과 (X/Y 둘 다) -->
+            <DoubleAnimation
+                Storyboard.TargetName="TargetTransform"
+                Storyboard.TargetProperty="X"
+                From="260" To="280"
+                Duration="0:0:3"
+                AutoReverse="True"
+                RepeatBehavior="Forever" />
+
+            <DoubleAnimation
+                Storyboard.TargetName="TargetTransform"
+                Storyboard.TargetProperty="Y"
+                From="40" To="60"
+                Duration="0:0:2.5"
+                AutoReverse="True"
+                RepeatBehavior="Forever" />
+        </Storyboard>
+        <Style x:Key="SciFiButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#111826"/>
+            <Setter Property="BorderBrush" Value="#00E4FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="3">
+                            <Grid>
+                                <!-- 안쪽 라인 -->
+                                <Border BorderBrush="#182233"
+                                BorderThickness="1"
+                                Margin="1"/>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="6,2"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- 마우스 오버 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#182133"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#33E4FF"/>
+                            </Trigger>
+                            <!-- 눌렀을 때 -->
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#0A141F"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FFCC33"/>
+                            </Trigger>
+                            <!-- 비활성화 -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#334455"/>
+                                <Setter Property="Foreground" Value="#556575"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Background="{StaticResource BgMain}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <!-- Top bar -->
+            <RowDefinition Height="*"/>
+            <!-- Main area -->
+            <RowDefinition Height="46"/>
+            <!-- Bottom bar -->
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <!-- Left panel -->
+            <ColumnDefinition Width="5*"/>
+            <!-- Center map -->
+            <ColumnDefinition Width="3*"/>
+            <!-- Right panel -->
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== 상단 상태바 ========== -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="8,4,8,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 좌측: 시스템 이름 -->
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="OPLINK CONTROL / SECTOR-07"
+                           Foreground="{StaticResource TextPrimary}"
+                           FontSize="14"
+                           FontWeight="Bold"/>
+                <TextBlock Text="   |   STATUS: ONLINE"
+                           Foreground="{StaticResource TextSecondary}"
+                           FontSize="11"
+                           Margin="8,2,0,0"/>
+            </StackPanel>
+
+            <!-- 우측: 시간 / 경고 아이콘 자리 -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="WARN"
+                           Foreground="{StaticResource AccentWarn}"
+                           FontSize="11"
+                           Margin="0,0,10,0"/>
+                <Rectangle Width="16" Height="16" Stroke="#00E4FF" StrokeThickness="1" Margin="0,0,6,0"/>
+                <Rectangle Width="16" Height="16" Stroke="#00E4FF" StrokeThickness="1" Margin="0,0,10,0"/>
+
+                <TextBlock x:Name="txtClock"
+                           Text="21:32:05"
+                           Foreground="{StaticResource TextPrimary}"
+                           FontSize="13"
+                           FontWeight="SemiBold"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ========== 좌측 패널 ========== -->
+        <StackPanel Grid.Row="1" Grid.Column="0" Margin="8,0,4,0">
+            <!-- 모듈 1: 시스템 게이지 -->
+            <Border Style="{StaticResource ModulePanel}" Height="170">
+                <StackPanel>
+                    <TextBlock Text="POWER SYSTEM" Foreground="{StaticResource TextPrimary}"
+                               FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="CORE LOAD" />
+                    <ProgressBar Value="72" Maximum="100" Height="6" Margin="0,0,0,4"/>
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="TEMP" />
+                    <ProgressBar Value="48" Maximum="100" Height="6"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 모듈 2: 작은 그래프 자리 (비어있어도 됨) -->
+            <Border Style="{StaticResource ModulePanel}" Height="170">
+                <Grid>
+                    <TextBlock Text="SIGNAL ANALYTICS"
+                               Foreground="{StaticResource TextPrimary}"
+                               FontSize="11" FontWeight="Bold"
+                               HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    <!-- 나중에 Polyline 그래프 or 라이브 데이터 바인딩 -->
+                </Grid>
+            </Border>
+
+            <!-- 모듈 3: 로그 창 -->
+            <Border Style="{StaticResource ModulePanel}" VerticalAlignment="Stretch">
+                <StackPanel>
+                    <TextBlock Text="EVENT LOG"
+                   Foreground="{StaticResource TextPrimary}"
+                   FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <ListBox x:Name="EventLogList"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Foreground="{StaticResource TextSecondary}"
+                 FontSize="10">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- ========== 중앙 패널 (지도/메인 화면) ========== -->
+        <Border Grid.Row="1" Grid.Column="1" Margin="4,0,4,0"
+                Style="{StaticResource ModulePanel}">
+            <Grid>
+                <!-- 배경 격자 -->
+                <Rectangle Fill="#0A101C" />
+                <Rectangle Stroke="#222C3C" StrokeThickness="1" Margin="20"/>
+                <!-- 메인 캔버스: 타겟, 레이더, FOV 등을 올릴 공간 -->
+                <Canvas x:Name="MainCanvas">
+                    <!-- 레이더 중심점 -->
+                    <Ellipse Width="8" Height="8" Fill="#00E4FF"
+                     Canvas.Left="196" Canvas.Top="116"/>
+
+                    <!-- 레이더 원 3개 (중심 기준 대략 값) -->
+                    <Ellipse Width="80" Height="80"
+                     Stroke="#00E4FF" StrokeThickness="1"
+                     StrokeDashArray="4 2"
+                     Canvas.Left="160" Canvas.Top="80"/>
+                    <Ellipse Width="140" Height="140"
+                     Stroke="#33465C" StrokeThickness="1"
+                     StrokeDashArray="4 2"
+                     Canvas.Left="130" Canvas.Top="50"/>
+                    <Ellipse x:Name="RadarCircle"
+                     Width="210" Height="210"
+                     Stroke="#00E4FF" StrokeThickness="1"
+                     StrokeDashArray="6 3"
+                     Canvas.Left="95" Canvas.Top="15"/>
+
+                    <!-- 카메라 시야각(FOV) 쐐기 모양 -->
+                    <Polygon x:Name="FovCone"
+                     Fill="#3318E4FF"
+                     Stroke="#18E4FF"
+                     StrokeThickness="1"
+                     Points="200,120  260,40  290,130"
+                     RenderTransformOrigin="0.5,0.5">
+                        <Polygon.RenderTransform>
+                            <RotateTransform x:Name="FovRotate" Angle="-20"/>
+                        </Polygon.RenderTransform>
+                    </Polygon>
+
+                    <!-- 타겟 점 -->
+                    <Ellipse x:Name="TargetDot"
+                     Width="10" Height="10"
+                     Fill="#FF4D4D"
+                     Stroke="#FFFFFF" StrokeThickness="1">
+                        <Ellipse.RenderTransform>
+                            <TranslateTransform x:Name="TargetTransform"
+                                        X="260" Y="40"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+                </Canvas>
+
+
+                <!-- 좌상단 제목 -->
+                <TextBlock Text="TERRAIN / SECTOR-07"
+                   Foreground="{StaticResource TextPrimary}"
+                   FontSize="11"
+                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Margin="6"/>
+
+                <!-- 우하단 좌표 표시 자리 -->
+                <TextBlock x:Name="txtTargetInfo"
+                   Text="TGT: --- , ---"
+                   Foreground="{StaticResource TextSecondary}"
+                   FontSize="10"
+                   HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                   Margin="0,0,6,4"/>
+                
+            </Grid>
+        </Border>
+
+        <!-- ========== 우측 패널 ========== -->
+        <StackPanel Grid.Row="1" Grid.Column="2" Margin="4,0,8,0">
+            <!-- 모듈 1: UAV 상태 -->
+            <Border Style="{StaticResource ModulePanel}" Height="170">
+                <StackPanel>
+                    <TextBlock Text="UAV STATUS"
+                               Foreground="{StaticResource TextPrimary}"
+                               FontSize="11" FontWeight="Bold"/>
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #01  READY" />
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #02  STANDBY" />
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #03  ACTIVE" />
+                </StackPanel>
+            </Border>
+
+            <!-- 모듈 2: 카메라 / 짐벌 -->
+            <Border Style="{StaticResource ModulePanel}" Height="170">
+                <StackPanel>
+                    <TextBlock Text="EO/IR GIMBAL"
+                               Foreground="{StaticResource TextPrimary}"
+                               FontSize="11" FontWeight="Bold"/>
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="PAN : +002.3°" />
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="TILT: -034.8°" />
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="FOV : 12.4°" />
+                </StackPanel>
+            </Border>
+
+            <!-- 모듈 3: 기타 -->
+            <Border Style="{StaticResource ModulePanel}" VerticalAlignment="Stretch">
+                <TextBlock Text="RESERVED PANEL"
+                           Foreground="{StaticResource TextSecondary}"
+                           FontSize="10"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+            </Border>
+            <!-- ⭐ 새로 추가: COMMAND 버튼 패널 -->
+            <Border Style="{StaticResource ModulePanel}" Height="60">
+                <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                    <Button x:Name="btnArm" Content="ARM"
+                    Width="70"
+                    Style="{StaticResource SciFiButton}"
+                    Click="btnArm_Click"/>
+                    <Button x:Name="btnDisarm" Content="DISARM"
+                    Width="80"
+                    Style="{StaticResource SciFiButton}"
+                    Click="btnDisarm_Click"/>
+                    <Button x:Name="btnTrack" Content="TRACK"
+                    Width="80"
+                    Style="{StaticResource SciFiButton}"
+                    Click="btnTrack_Click"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- ========== 하단 바 ========== -->
+        <Border Grid.Row="2" Grid.ColumnSpan="3" Margin="8,4,8,8"
+                Background="#0C121E" BorderBrush="#1D2535"
+                BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 좌측: 텔레메트리 -->
+                <StackPanel Orientation="Horizontal" Margin="8,4,0,0">
+                    <TextBlock x:Name="txtAlt" Style="{StaticResource TinyLabel}" Text="ALT: 0123m" />
+                    <TextBlock x:Name="txtSpd" Style="{StaticResource TinyLabel}" Text="   SPD: 045kt" />
+                    <TextBlock x:Name="txtHdg" Style="{StaticResource TinyLabel}" Text="   HDG: 273°" />
+                </StackPanel>
+
+                <!-- 중앙: 진행 상태 바 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="MISSION 03   PROGRESS" />
+                    <ProgressBar x:Name="MissionProgress" Value="38" Maximum="100" Height="8" Width="260" Margin="6,0,0,0"/>
+                </StackPanel>
+
+                <!-- 우측: 연결 정보 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                            HorizontalAlignment="Right" Margin="0,4,8,0">
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="LINK: UDP 14550 " />
+                    <Ellipse x:Name="LinkLed" Width="8" Height="8" Fill="#31FF72" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+
