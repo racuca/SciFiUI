@@ -80,7 +80,18 @@ namespace SciFiConsoleWpf
         private double _radarAngle = 0;          // 현재 스윕 각도
         private bool _radarDetectedThisTurn = false;
 
-        private Storyboard _dataStreamStoryboard;
+        //private Storyboard _dataStreamStoryboard;
+
+        private DispatcherTimer _dataStreamTimer;
+
+        private class DataStreamBar
+        {
+            public ScaleTransform Scale;  // Y 스케일만 조정
+            public double Target;         // 목표 높이 (0.2 ~ 1.0)
+            public double Speed;          // 반응 속도 계수
+        }
+
+        private readonly List<DataStreamBar> _dataBars = new List<DataStreamBar>();
 
 
         public MainWindow()
@@ -94,7 +105,7 @@ namespace SciFiConsoleWpf
             );
 
             // 1) UI 애니메이션 시작
-            _dataStreamStoryboard = (Storyboard)FindResource("DataStreamAnimations");
+            //_dataStreamStoryboard = (Storyboard)FindResource("DataStreamAnimations");
 
             // 2) 시계/진행률 타이머 설정
             _timer = new DispatcherTimer();
@@ -102,8 +113,12 @@ namespace SciFiConsoleWpf
             _timer.Tick += _timer_Tick;
             //_timer.Start();
 
-            RadarCanvas.Loaded += (s, e) => InitRadar(); 
+            RadarCanvas.Loaded += (s, e) => InitRadar();
+
+            // Data Stream 초기화
+            DataStreamPanel.Loaded += (s, e) => InitDataStream();
         }
+
 
         private void _timer_Tick(object sender, EventArgs e)
         {
@@ -149,12 +164,17 @@ namespace SciFiConsoleWpf
             }
 
             // 2) 애니메이션 정지
-            if (_dataStreamStoryboard != null)
+            //if (_dataStreamStoryboard != null)
+            //{
+            //    _dataStreamStoryboard.Stop(this);
+            //    _dataStreamStoryboard = null;
+            //}
+            if (_dataStreamTimer != null)
             {
-                _dataStreamStoryboard.Stop(this);
-                _dataStreamStoryboard = null;
+                _dataStreamTimer.Stop();
+                _dataStreamTimer.Tick -= DataStreamTimer_Tick;
+                _dataStreamTimer = null;
             }
-
 
             // 3) GMap 정리
             if (MapControl != null)
@@ -408,15 +428,148 @@ namespace SciFiConsoleWpf
 
         private void StartDataStream()
         {
-            _dataStreamStoryboard?.Begin(this, true);
+            if (_dataStreamTimer == null)
+                InitDataStream();
+            else
+                _dataStreamTimer.Start();
         }
 
         private void StopDataStream()
         {
-            _dataStreamStoryboard?.Stop(this);
+            _dataStreamTimer?.Stop();
+        }
+        private void InitDataStream()
+        {
+            if (_dataStreamTimer != null)
+                return; // 이미 초기화 되어 있으면 다시 안 함
+
+            // 1) 막대들을 넣을 StackPanel 하나 만들기
+            var host = DataStreamBarsHost;
+            host.Children.Clear();
+
+            var stack = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+            host.Children.Add(stack);
+
+            // 2) 8개의 바 생성
+            int barCount = 8;
+            _dataBars.Clear();
+
+            for (int i = 0; i < barCount; i++)
+            {
+                var border = new Border
+                {
+                    Width = 12,
+                    Height = 80,
+                    Margin = new Thickness(4, 0, 4, 0),
+                    Background = (Brush)new SolidColorBrush(Color.FromRgb(0x08, 0x10, 0x17))
+                };
+
+                var rect = new Rectangle
+                {
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    Fill = GetBarColor(i),
+                    Height = 80
+                };
+
+                Console.WriteLine("Bar Color : " + rect.Fill.ToString());
+
+                // 아래를 기준으로 스케일 되도록 설정
+                rect.RenderTransformOrigin = new Point(0.5, 1.0);
+                var scale = new ScaleTransform
+                {
+                    ScaleX = 1.0,
+                    ScaleY = 0.2  // 초기 높이
+                };
+                rect.RenderTransform = scale;
+
+                border.Child = rect;
+                stack.Children.Add(border);
+
+                var bar = new DataStreamBar
+                {
+                    Scale = scale,
+                    Target = 0.2 + _rand.NextDouble() * 0.8,         // 0.2~1.0
+                    Speed = 0.10 + _rand.NextDouble() * 0.15         // 0.10~0.25
+                };
+                _dataBars.Add(bar);
+                Console.WriteLine($"Add bar {i} to UI");
+            }
+
+            Console.WriteLine("Host children: " + host.Children.Count);
+
+            // 3) 타이머 설정 (약 16 fps)
+            _dataStreamTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(60)
+            };
+            _dataStreamTimer.Tick += DataStreamTimer_Tick;
+            _dataStreamTimer.Start();
         }
 
+        private Brush GetBarColor(int index)
+        {
+            // 조금씩 다른 색으로
+            //switch (index % 4)
+            //{
+            //    case 0: return new SolidColorBrush(Color.FromRgb(0x00, 0xE4, 0xFF)); // 사이언
+            //    case 1: return new SolidColorBrush(Color.FromRgb(0x00, 0xFF, 0x88)); // 라임
+            //    case 2: return new SolidColorBrush(Color.FromRgb(0xFF, 0xCC, 0x33)); // 옐로우
+            //    default: return new SolidColorBrush(Color.FromRgb(0xFF, 0x4D, 0x4D)); // 레드
+            //}
 
+            // 전체 UI 컨셉에 맞춘 디지털 팔레트
+            // index에 따라 적당히 로테이션
+            byte a = 0xA0; // 반투명
+            switch (index % 6)
+            {
+                case 0: // Primary Cyan
+                    return new SolidColorBrush(Color.FromArgb(a, 0x18, 0xE4, 0xFF)); // #18E4FF
+
+                case 1: // Soft Cyan
+                    return new SolidColorBrush(Color.FromArgb(a, 0x4F, 0xD8, 0xFF)); // #4FD8FF
+
+                case 2: // Neo Green
+                    return new SolidColorBrush(Color.FromArgb(a, 0x3C, 0xFF, 0x9C)); // #3CFF9C
+
+                case 3: // Muted Blue
+                    return new SolidColorBrush(Color.FromArgb(a, 0x1F, 0x6F, 0xFF)); // #1F6FFF
+
+                case 4: // Amber
+                    return new SolidColorBrush(Color.FromArgb(a, 0xFF, 0xC8, 0x57)); // #FFC857
+
+                default: // Warning Red
+                    return new SolidColorBrush(Color.FromArgb(a, 0xFF, 0x6B, 0x6B)); // #FF6B6B
+            }
+        }
+
+        private void DataStreamTimer_Tick(object sender, EventArgs e)
+        {
+            foreach (var bar in _dataBars)
+            {
+                double current = bar.Scale.ScaleY;
+
+                // 목표값을 향해 조금씩 보간 (lerp)
+                double next = current + (bar.Target - current) * bar.Speed;
+
+                // 최소/최대 한 번 더 제한
+                if (next < 0.1) next = 0.1;
+                if (next > 1.0) next = 1.0;
+
+                bar.Scale.ScaleY = next;
+
+                // 목표에 거의 도달하면 새 목표로 변경
+                if (Math.Abs(bar.Target - next) < 0.03)
+                {
+                    bar.Target = 0.2 + _rand.NextDouble() * 0.8; // 0.2~1.0 사이 새로운 목표
+                }
+            }
+        }
 
         private void MapControl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -799,20 +952,17 @@ namespace SciFiConsoleWpf
         {
             ShowLayer(LayerAnimation);
             
-            VideoSourcePanel.Visibility = Visibility.Collapsed;
-            
             StartRadar();
 
             // Data Stream도 같이 시작
             StartDataStream();
 
+            VideoSourcePanel.Visibility = Visibility.Collapsed;
         }
 
         private void btnShowMap_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerMap);
-
-            VideoSourcePanel.Visibility = Visibility.Collapsed;
 
             StopRadar();
             StopDataStream();
@@ -822,6 +972,8 @@ namespace SciFiConsoleWpf
                 InitMap();
                 mapInitialized = true;
             }
+
+            VideoSourcePanel.Visibility = Visibility.Collapsed;
         }
 
         private void btnShowVideo_Click(object sender, RoutedEventArgs e)
