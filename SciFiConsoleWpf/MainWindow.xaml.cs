@@ -7,6 +7,7 @@ using LibVLCSharp.Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -30,7 +31,7 @@ namespace SciFiConsoleWpf
     public partial class MainWindow : Window
     {
 
-        private DispatcherTimer _timer;
+        //private DispatcherTimer _timer;
         private double _missionProgress = 0;
         private int _tickCount = 0;
 
@@ -94,6 +95,24 @@ namespace SciFiConsoleWpf
         private readonly List<DataStreamBar> _dataBars = new List<DataStreamBar>();
 
 
+
+
+
+        // POWER SYSTEM 모니터링
+        private PerformanceCounter[] _cpuCounters;   // Core0, Core1
+        private PerformanceCounter _ramCounter;      // RAM %
+        private DispatcherTimer _powerTimer;
+
+        private ScaleTransform[] _cpuScales;         // Cpu0Scale, Cpu1Scale
+        private ScaleTransform _ramScale;
+        private ScaleTransform _gpuScale;
+
+        // GPU 가상 값용
+        private double _gpuDisplayValue = 0.0;
+
+
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -108,15 +127,17 @@ namespace SciFiConsoleWpf
             //_dataStreamStoryboard = (Storyboard)FindResource("DataStreamAnimations");
 
             // 2) 시계/진행률 타이머 설정
-            _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1);
-            _timer.Tick += _timer_Tick;
+            //_timer = new DispatcherTimer();
+            //_timer.Interval = TimeSpan.FromSeconds(1);
+            //_timer.Tick += _timer_Tick;
             //_timer.Start();
 
             RadarCanvas.Loaded += (s, e) => InitRadar();
 
             // Data Stream 초기화
             DataStreamPanel.Loaded += (s, e) => InitDataStream();
+
+            CPURAMPanel.Loaded += (s, e) => InitPowerSystemMonitor();
         }
 
 
@@ -156,12 +177,12 @@ namespace SciFiConsoleWpf
         private void Window_Closing(object sender, CancelEventArgs e)
         {
             // 1) 타이머 정지
-            if (_timer != null)
-            {
-                _timer.Stop();
-                _timer.Tick -= _timer_Tick;
-                _timer = null;
-            }
+            //if (_timer != null)
+            //{
+            //   _timer.Stop();
+            //    _timer.Tick -= _timer_Tick;
+            //    _timer = null;
+            //}
 
             // 2) 애니메이션 정지
             //if (_dataStreamStoryboard != null)
@@ -220,6 +241,24 @@ namespace SciFiConsoleWpf
             catch { }
 
             StopDataStream();
+
+            if (_powerTimer != null)
+            {
+                _powerTimer.Stop();
+                _powerTimer.Tick -= _powerTimer_Tick;
+                _powerTimer = null;
+            }
+
+            if (_cpuCounters != null)
+            {
+                foreach (var c in _cpuCounters)
+                    c?.Dispose();
+                _cpuCounters = null;
+            }
+
+            _ramCounter?.Dispose();
+            _ramCounter = null;
+
 
             // 마지막으로 애플리케이션 정리
             Application.Current.Shutdown();  // 이 줄은 선택이지만, 확실하게 끝낼 수 있음
@@ -570,6 +609,107 @@ namespace SciFiConsoleWpf
                 }
             }
         }
+
+
+
+        private void InitPowerSystemMonitor()
+        {
+            // 1) XAML ScaleTransform 레퍼런스 연결
+            _cpuScales = new[]
+            {
+                Cpu0Scale,
+                Cpu1Scale
+            };
+            _ramScale = RamScale;
+            _gpuScale = GpuScale;
+
+            int coreCount = _cpuScales.Length;
+
+            // 2) CPU 퍼포먼스 카운터 (Core0, Core1)
+            _cpuCounters = new PerformanceCounter[coreCount];
+            for (int i = 0; i < coreCount; i++)
+            {
+                _cpuCounters[i] = new PerformanceCounter(
+                    "Processor",
+                    "% Processor Time",
+                    i.ToString());     // "0", "1"
+                _cpuCounters[i].NextValue(); // 첫 값 버리기
+            }
+
+            // 3) RAM 퍼포먼스 카운터 (% 사용률)
+            _ramCounter = new PerformanceCounter(
+                "Memory",
+                "% Committed Bytes In Use");
+            _ramCounter.NextValue();
+
+            // 4) 타이머 설정 (1초마다 갱신)
+            _powerTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _powerTimer.Tick += _powerTimer_Tick; ;
+            _powerTimer.Start();
+        }
+
+        private void _powerTimer_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                // CPU Core 0,1
+                for (int i = 0; i < _cpuScales.Length && i < _cpuCounters.Length; i++)
+                {
+                    float cpu = _cpuCounters[i].NextValue();   // 0~100
+                    double norm = Math.Max(0.0, Math.Min(1.0, cpu / 100.0)); // 0~1
+
+                    // 너무 완전 0이 되지 않게 0.05~1.0 범위
+                    double scale = 0.05 + norm * 0.95;
+                    _cpuScales[i].ScaleX = scale;
+                }
+
+                // RAM
+                float ram = _ramCounter.NextValue();           // 0~100
+                double ramNorm = Math.Max(0.0, Math.Min(1.0, ram / 100.0));
+                _ramScale.ScaleX = 0.05 + ramNorm * 0.95;
+
+                // GPU (임시: 전체 CPU 평균 기반 가상 값)
+                double avgCpu =
+                    (_cpuCounters[0].NextValue() +
+                     _cpuCounters[1].NextValue()) / 2.0;
+
+                double gpuTarget = Math.Max(0.0, Math.Min(1.0, avgCpu / 100.0));
+
+                // 약간 느리게 따라오는 필터 걸어서 부드럽게
+                _gpuDisplayValue += (gpuTarget - _gpuDisplayValue) * 0.3;
+                _gpuScale.ScaleX = 0.05 + _gpuDisplayValue * 0.95;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("PowerTimer error: " + ex.Message);
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /// <summary>
+        /// Map 관련 이벤트: 마우스 왼쪽 버튼 클릭
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
 
         private void MapControl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

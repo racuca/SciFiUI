@@ -216,15 +216,74 @@
 
         <!-- ========== 좌측 패널 ========== -->
         <StackPanel Grid.Row="1" Grid.Column="0" Margin="8,0,4,0">
-            <!-- 모듈 1: 시스템 게이지 -->
+            <!-- 모듈 1: POWER SYSTEM -->
             <Border Style="{StaticResource ModulePanel}" Height="170">
-                <StackPanel>
-                    <TextBlock Text="POWER SYSTEM" Foreground="{StaticResource TextPrimary}"
-                               FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="CORE LOAD" />
-                    <ProgressBar Value="72" Maximum="100" Height="6" Margin="0,0,0,4"/>
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="TEMP" />
-                    <ProgressBar Value="48" Maximum="100" Height="6"/>
+                <StackPanel Name="CPURAMPanel">
+                    <TextBlock Text="POWER SYSTEM"
+                   Foreground="{StaticResource TextPrimary}"
+                   FontSize="11" FontWeight="Bold"
+                   Margin="0,0,0,4"/>
+
+                    <!-- CPU CORE 0 -->
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 0" />
+                    <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                        <Rectangle x:Name="Cpu0Bar"
+                       Height="8"
+                       VerticalAlignment="Bottom"
+                       Fill="#18E4FF">
+                            <Rectangle.RenderTransform>
+                                <ScaleTransform x:Name="Cpu0Scale"
+                                    ScaleX="0.1" ScaleY="1"
+                                    CenterX="0" CenterY="0.5"/>
+                            </Rectangle.RenderTransform>
+                        </Rectangle>
+                    </Grid>
+
+                    <!-- CPU CORE 1 -->
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 1" />
+                    <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                        <Rectangle x:Name="Cpu1Bar"
+                       Height="8"
+                       VerticalAlignment="Bottom"
+                       Fill="#3CFF9C">
+                            <Rectangle.RenderTransform>
+                                <ScaleTransform x:Name="Cpu1Scale"
+                                    ScaleX="0.1" ScaleY="1"
+                                    CenterX="0" CenterY="0.5"/>
+                            </Rectangle.RenderTransform>
+                        </Rectangle>
+                    </Grid>
+
+                    <!-- RAM -->
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="RAM" />
+                    <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                        <Rectangle x:Name="RamBar"
+                       Height="8"
+                       VerticalAlignment="Bottom"
+                       Fill="#1F6FFF">
+                            <Rectangle.RenderTransform>
+                                <ScaleTransform x:Name="RamScale"
+                                    ScaleX="0.1" ScaleY="1"
+                                    CenterX="0" CenterY="0.5"/>
+                            </Rectangle.RenderTransform>
+                        </Rectangle>
+                    </Grid>
+
+                    <!-- GPU (일단 CPU 기반/가상 값, 나중에 진짜 GPU 카운터로 교체 가능) -->
+                    <TextBlock Style="{StaticResource TinyLabel}" Text="GPU" />
+                    <Grid Height="8" Background="#050A12">
+                        <Rectangle x:Name="GpuBar"
+                       Height="8"
+                       VerticalAlignment="Bottom"
+                       Fill="#FF6B6B">
+                            <Rectangle.RenderTransform>
+                                <ScaleTransform x:Name="GpuScale"
+                                    ScaleX="0.1" ScaleY="1"
+                                    CenterX="0" CenterY="0.5"/>
+                            </Rectangle.RenderTransform>
+                        </Rectangle>
+                    </Grid>
+
                 </StackPanel>
             </Border>
 
