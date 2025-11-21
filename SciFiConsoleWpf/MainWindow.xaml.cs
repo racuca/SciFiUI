@@ -403,49 +403,52 @@ namespace SciFiConsoleWpf
         }
 
 
-
+        int signalAnalyticsCounter = 0;
         private void SignalTimer_Tick(object sender, EventArgs e)
         {
-            // 1) 데모용 값 생성 (나중에 실제 값으로 교체)
-            // 대략 60~100% 사이에서 왔다 갔다 하는 느낌
-            double uplink = 60 + _rand.NextDouble() * 40;    // 60~100
-            double downlink = 55 + _rand.NextDouble() * 45;  // 55~100
+            signalAnalyticsCounter++;
+            if (signalAnalyticsCounter % 5 == 0)
+            {
+                // 1) 데모용 값 생성 (나중에 실제 값으로 교체)
+                // 대략 60~100% 사이에서 왔다 갔다 하는 느낌
+                double uplink = 60 + _rand.NextDouble() * 40;    // 60~100
+                double downlink = 55 + _rand.NextDouble() * 45;  // 55~100
 
-            double pktLoss = _rand.NextDouble() * 3.0;       // 0~3 %
-            double latency = 30 + _rand.NextDouble() * 150;  // 30~180 ms
+                double pktLoss = _rand.NextDouble() * 3.0;       // 0~3 %
+                double latency = 30 + _rand.NextDouble() * 150;  // 30~180 ms
 
-            // 2) 막대 (0~1 정규화 → ScaleX)
-            UpdateSignalBar(SigUplinkScale, SigUplinkText, uplink, "UL");
-            UpdateSignalBar(SigDownlinkScale, SigDownlinkText, downlink, "DL");
+                // 2) 막대 (0~1 정규화 → ScaleX)
+                UpdateSignalBar(SigUplinkScale, SigUplinkText, uplink, "UL");
+                UpdateSignalBar(SigDownlinkScale, SigDownlinkText, downlink, "DL");
 
-            // 3) PKT LOSS / LATENCY 텍스트 & 상태 색상
-            PktLossText.Text = $"{pktLoss:0.0} %";
-            LatencyText.Text = $"{latency:0} ms";
+                // 3) PKT LOSS / LATENCY 텍스트 & 상태 색상
+                PktLossText.Text = $"{pktLoss:0.0} %";
+                LatencyText.Text = $"{latency:0} ms";
 
-            // 색상: 초록/노랑/빨강 간단 룰
-            PktLossIndicator.Fill = GetStatusColor(pktLoss, 1.0, 3.0);   // <1% 초록, <3% 노랑, 나머지 빨강
-            LatencyIndicator.Fill = GetStatusColor(latency, 120, 250);   // <120ms 초록, <250ms 노랑, 나머지 빨강
+                // 색상: 초록/노랑/빨강 간단 룰
+                PktLossIndicator.Fill = GetStatusColor(pktLoss, 1.0, 3.0);   // <1% 초록, <3% 노랑, 나머지 빨강
+                LatencyIndicator.Fill = GetStatusColor(latency, 120, 250);   // <120ms 초록, <250ms 노랑, 나머지 빨강
 
-            // 4) 웨이브폼: uplink 품질 기반으로 히스토리 추가
-            double norm = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
-            _signalHistory.Add(norm);
-            if (_signalHistory.Count > SignalHistoryCount)
-                _signalHistory.RemoveAt(0);
+                // 4) 웨이브폼: uplink 품질 기반으로 히스토리 추가
+                double norm = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
+                _signalHistory.Add(norm);
+                if (_signalHistory.Count > SignalHistoryCount)
+                    _signalHistory.RemoveAt(0);
 
-            UpdateSignalWavePolyline();
+                UpdateSignalWavePolyline();
 
+                // 3) 영역 그래프용 시리즈 업데이트 (0~1로 정규화)
+                double s1 = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
+                double s2 = Math.Max(0.0, Math.Min(1.0, downlink / 100.0));
 
-            // 3) 영역 그래프용 시리즈 업데이트 (0~1로 정규화)
-            double s1 = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
-            double s2 = Math.Max(0.0, Math.Min(1.0, downlink / 100.0));
+                // s3는 잡음/간섭 느낌 – uplink/downlink 기준으로 약간 랜덤
+                double noiseBase = 1.0 - Math.Max(s1, s2); // 품질 좋을수록 noise 작게
+                double s3 = Math.Max(0.0, Math.Min(1.0, noiseBase + (_rand.NextDouble() - 0.5) * 0.2));
 
-            // s3는 잡음/간섭 느낌 – uplink/downlink 기준으로 약간 랜덤
-            double noiseBase = 1.0 - Math.Max(s1, s2); // 품질 좋을수록 noise 작게
-            double s3 = Math.Max(0.0, Math.Min(1.0, noiseBase + (_rand.NextDouble() - 0.5) * 0.2));
-
-            AppendSeries(_series1, s1);
-            AppendSeries(_series2, s2);
-            AppendSeries(_series3, s3);
+                AppendSeries(_series1, s1);
+                AppendSeries(_series2, s2);
+                AppendSeries(_series3, s3);
+            }
 
             // 4) 그래프 다시 그리기
             UpdateSignalAreaChart();
