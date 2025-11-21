@@ -288,13 +288,113 @@
             </Border>
 
             <!-- 모듈 2: 작은 그래프 자리 (비어있어도 됨) -->
-            <Border Style="{StaticResource ModulePanel}" Height="170">
-                <Grid>
-                    <TextBlock Text="SIGNAL ANALYTICS"
-                               Foreground="{StaticResource TextPrimary}"
-                               FontSize="11" FontWeight="Bold"
-                               HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                    <!-- 나중에 Polyline 그래프 or 라이브 데이터 바인딩 -->
+            <Border Style="{StaticResource ModulePanel}" Height="190">
+                <Grid Margin="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 제목 -->
+                    <TextBlock Grid.Row="0"
+                   Text="SIGNAL ANALYTICS"
+                   Foreground="{StaticResource TextPrimary}"
+                   FontSize="11"
+                   FontWeight="Bold"
+                   Margin="0,0,0,4"/>
+
+                    <!-- UPLINK / DOWNLINK 바 -->
+                    <StackPanel Grid.Row="1" Margin="0,0,0,4">
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="UPLINK QUALITY" />
+                        <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                            <Rectangle x:Name="SigUplinkBar"
+                           Height="8"
+                           VerticalAlignment="Bottom"
+                           Fill="#18E4FF">
+                                <Rectangle.RenderTransform>
+                                    <ScaleTransform x:Name="SigUplinkScale"
+                                        ScaleX="0.1" ScaleY="1"
+                                        CenterX="0" CenterY="0.5"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+                        </Grid>
+                        <TextBlock x:Name="SigUplinkText"
+                       Style="{StaticResource TinyLabel}"
+                       Text="UL: 0%" />
+
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="DOWNLINK QUALITY" Margin="0,6,0,0"/>
+                        <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                            <Rectangle x:Name="SigDownlinkBar"
+                           Height="8"
+                           VerticalAlignment="Bottom"
+                           Fill="#3CFF9C">
+                                <Rectangle.RenderTransform>
+                                    <ScaleTransform x:Name="SigDownlinkScale"
+                                        ScaleX="0.1" ScaleY="1"
+                                        CenterX="0" CenterY="0.5"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+                        </Grid>
+                        <TextBlock x:Name="SigDownlinkText"
+                       Style="{StaticResource TinyLabel}"
+                       Text="DL: 0%" />
+                    </StackPanel>
+
+                    <!-- PKT LOSS / LATENCY -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,4">
+                        <StackPanel Width="110">
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="PKT LOSS" />
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="PktLossIndicator"
+                             Width="6" Height="6"
+                             Margin="0,2,4,0"
+                             Fill="#18E4FF"/>
+                                <TextBlock x:Name="PktLossText"
+                               Style="{StaticResource TinyLabel}"
+                               Text="0.0 %" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="LATENCY" />
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="LatencyIndicator"
+                             Width="6" Height="6"
+                             Margin="0,2,4,0"
+                             Fill="#18E4FF"/>
+                                <TextBlock x:Name="LatencyText"
+                               Style="{StaticResource TinyLabel}"
+                               Text="0 ms" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 웨이브폼 그래프 -->
+                    <Grid x:Name="SignalWaveHost"
+                          Grid.Row="3"
+                          Margin="0,4,0,0"
+                          Background="#050A12">
+                        <Canvas>
+                            <!-- 세로 그리드 라인 몇 개 -->
+                            <Line X1="0"   Y1="0" X2="0"   Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                      Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="40"  Y1="0" X2="40"  Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                      Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="80"  Y1="0" X2="80"  Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                      Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="120" Y1="0" X2="120" Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                      Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="160" Y1="0" X2="160" Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                      Stroke="#101822" StrokeThickness="1"/>
+                        </Canvas>
+
+                        <Polyline x:Name="SignalWave"
+                      Stroke="#18E4FF"
+                      StrokeThickness="1.3"
+                      Points="0,0 10,0"/>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -378,7 +478,7 @@
                            VerticalAlignment="Bottom"
                            Margin="0,0,0,10"/>
                     </Grid>
-                    <!-- 🔽 아래쪽 Data Stream 패널 (껍데기만) -->
+                    <!-- 🔽 아래쪽 Data Stream 패널 (껍데기만)
                     <Grid x:Name="DataStreamPanel"
                           Width="420"
                           Height="120"
@@ -395,7 +495,6 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- 헤더 -->
                                 <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
                                     <TextBlock Text="DATA STREAM ANALYZER"
                                        Foreground="{StaticResource TextPrimary}"
@@ -407,7 +506,6 @@
                                        Margin="8,0,0,0" />
                                 </StackPanel>
 
-                                <!-- ▶ 여기 안에 C#에서 바들을 동적으로 만들어 넣을 예정 ◀ -->
                                 <Grid x:Name="DataStreamBarsHost" Grid.Row="1" 
                                       Margin="0,4,0,0"
                                       VerticalAlignment="Stretch"
@@ -416,7 +514,7 @@
                                       />
                             </Grid>
                         </Border>
-                    </Grid>
+                    </Grid>-->
                 </Grid>
 
                 <!-- ========== Layer 1 : MAP ========== -->

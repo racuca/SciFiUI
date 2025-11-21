@@ -110,7 +110,10 @@ namespace SciFiConsoleWpf
         // GPU 가상 값용
         private double _gpuDisplayValue = 0.0;
 
-
+        // SIGNAL ANALYTICS
+        private DispatcherTimer _signalTimer;
+        private const int SignalHistoryCount = 40;
+        private readonly List<double> _signalHistory = new List<double>();
 
 
         public MainWindow()
@@ -135,9 +138,11 @@ namespace SciFiConsoleWpf
             RadarCanvas.Loaded += (s, e) => InitRadar();
 
             // Data Stream 초기화
-            DataStreamPanel.Loaded += (s, e) => InitDataStream();
+            //DataStreamPanel.Loaded += (s, e) => InitDataStream();
 
             CPURAMPanel.Loaded += (s, e) => InitPowerSystemMonitor();
+
+            SignalWaveHost.Loaded += (s, e) => InitSignalAnalytics();
         }
 
 
@@ -240,7 +245,7 @@ namespace SciFiConsoleWpf
             }
             catch { }
 
-            StopDataStream();
+            //StopDataStream();
 
             if (_powerTimer != null)
             {
@@ -259,6 +264,13 @@ namespace SciFiConsoleWpf
             _ramCounter?.Dispose();
             _ramCounter = null;
 
+
+            if (_signalTimer != null)
+            {
+                _signalTimer.Stop();
+                _signalTimer.Tick -= SignalTimer_Tick;
+                _signalTimer = null;
+            }
 
             // 마지막으로 애플리케이션 정리
             Application.Current.Shutdown();  // 이 줄은 선택이지만, 확실하게 끝낼 수 있음
@@ -465,91 +477,92 @@ namespace SciFiConsoleWpf
         }
 
 
-        private void StartDataStream()
-        {
-            if (_dataStreamTimer == null)
-                InitDataStream();
-            else
-                _dataStreamTimer.Start();
-        }
+        //private void StartDataStream()
+        //{
+        //    if (_dataStreamTimer == null)
+        //        InitDataStream();
+        //    else
+        //        _dataStreamTimer.Start();
+        //}
 
-        private void StopDataStream()
-        {
-            _dataStreamTimer?.Stop();
-        }
-        private void InitDataStream()
-        {
-            if (_dataStreamTimer != null)
-                return; // 이미 초기화 되어 있으면 다시 안 함
+        //private void StopDataStream()
+        //{
+        //    _dataStreamTimer?.Stop();
+        //}
+        
+        //private void InitDataStream()
+        //{
+        //    if (_dataStreamTimer != null)
+        //        return; // 이미 초기화 되어 있으면 다시 안 함
 
-            // 1) 막대들을 넣을 StackPanel 하나 만들기
-            var host = DataStreamBarsHost;
-            host.Children.Clear();
+        //    // 1) 막대들을 넣을 StackPanel 하나 만들기
+        //    var host = DataStreamBarsHost;
+        //    host.Children.Clear();
 
-            var stack = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 4, 0, 0)
-            };
-            host.Children.Add(stack);
+        //    var stack = new StackPanel
+        //    {
+        //        Orientation = Orientation.Horizontal,
+        //        HorizontalAlignment = HorizontalAlignment.Center,
+        //        VerticalAlignment = VerticalAlignment.Bottom,
+        //        Margin = new Thickness(0, 4, 0, 0)
+        //    };
+        //    host.Children.Add(stack);
 
-            // 2) 8개의 바 생성
-            int barCount = 8;
-            _dataBars.Clear();
+        //    // 2) 8개의 바 생성
+        //    int barCount = 8;
+        //    _dataBars.Clear();
 
-            for (int i = 0; i < barCount; i++)
-            {
-                var border = new Border
-                {
-                    Width = 12,
-                    Height = 80,
-                    Margin = new Thickness(4, 0, 4, 0),
-                    Background = (Brush)new SolidColorBrush(Color.FromRgb(0x08, 0x10, 0x17))
-                };
+        //    for (int i = 0; i < barCount; i++)
+        //    {
+        //        var border = new Border
+        //        {
+        //            Width = 12,
+        //            Height = 80,
+        //            Margin = new Thickness(4, 0, 4, 0),
+        //            Background = (Brush)new SolidColorBrush(Color.FromRgb(0x08, 0x10, 0x17))
+        //        };
 
-                var rect = new Rectangle
-                {
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Fill = GetBarColor(i),
-                    Height = 80
-                };
+        //        var rect = new Rectangle
+        //        {
+        //            VerticalAlignment = VerticalAlignment.Bottom,
+        //            Fill = GetBarColor(i),
+        //            Height = 80
+        //        };
 
-                Console.WriteLine("Bar Color : " + rect.Fill.ToString());
+        //        Console.WriteLine("Bar Color : " + rect.Fill.ToString());
 
-                // 아래를 기준으로 스케일 되도록 설정
-                rect.RenderTransformOrigin = new Point(0.5, 1.0);
-                var scale = new ScaleTransform
-                {
-                    ScaleX = 1.0,
-                    ScaleY = 0.2  // 초기 높이
-                };
-                rect.RenderTransform = scale;
+        //        // 아래를 기준으로 스케일 되도록 설정
+        //        rect.RenderTransformOrigin = new Point(0.5, 1.0);
+        //        var scale = new ScaleTransform
+        //        {
+        //            ScaleX = 1.0,
+        //            ScaleY = 0.2  // 초기 높이
+        //        };
+        //        rect.RenderTransform = scale;
 
-                border.Child = rect;
-                stack.Children.Add(border);
+        //        border.Child = rect;
+        //        stack.Children.Add(border);
 
-                var bar = new DataStreamBar
-                {
-                    Scale = scale,
-                    Target = 0.2 + _rand.NextDouble() * 0.8,         // 0.2~1.0
-                    Speed = 0.10 + _rand.NextDouble() * 0.15         // 0.10~0.25
-                };
-                _dataBars.Add(bar);
-                Console.WriteLine($"Add bar {i} to UI");
-            }
+        //        var bar = new DataStreamBar
+        //        {
+        //            Scale = scale,
+        //            Target = 0.2 + _rand.NextDouble() * 0.8,         // 0.2~1.0
+        //            Speed = 0.10 + _rand.NextDouble() * 0.15         // 0.10~0.25
+        //        };
+        //        _dataBars.Add(bar);
+        //        Console.WriteLine($"Add bar {i} to UI");
+        //    }
 
-            Console.WriteLine("Host children: " + host.Children.Count);
+        //    Console.WriteLine("Host children: " + host.Children.Count);
 
-            // 3) 타이머 설정 (약 16 fps)
-            _dataStreamTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(60)
-            };
-            _dataStreamTimer.Tick += DataStreamTimer_Tick;
-            _dataStreamTimer.Start();
-        }
+        //    // 3) 타이머 설정 (약 16 fps)
+        //    _dataStreamTimer = new DispatcherTimer
+        //    {
+        //        Interval = TimeSpan.FromMilliseconds(60)
+        //    };
+        //    _dataStreamTimer.Tick += DataStreamTimer_Tick;
+        //    _dataStreamTimer.Start();
+        //}
 
         private Brush GetBarColor(int index)
         {
@@ -689,16 +702,106 @@ namespace SciFiConsoleWpf
         }
 
 
+        private void InitSignalAnalytics()
+        {
+            if (_signalTimer != null)
+                return; // 한 번만 초기화
+
+            // 초기 히스토리 0으로 채워두기
+            _signalHistory.Clear();
+            for (int i = 0; i < SignalHistoryCount; i++)
+            {
+                _signalHistory.Add(0.0);
+            }
+
+            // 타이머: 200ms 정도면 부드럽게 움직임
+            _signalTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _signalTimer.Tick += SignalTimer_Tick;
+            _signalTimer.Start();
+        }
+
+        private void SignalTimer_Tick(object sender, EventArgs e)
+        {
+            // 1) 데모용 값 생성 (나중에 실제 값으로 교체)
+            // 대략 60~100% 사이에서 왔다 갔다 하는 느낌
+            double uplink = 60 + _rand.NextDouble() * 40;    // 60~100
+            double downlink = 55 + _rand.NextDouble() * 45;  // 55~100
+
+            double pktLoss = _rand.NextDouble() * 3.0;       // 0~3 %
+            double latency = 30 + _rand.NextDouble() * 150;  // 30~180 ms
+
+            // 2) 막대 (0~1 정규화 → ScaleX)
+            UpdateSignalBar(SigUplinkScale, SigUplinkText, uplink, "UL");
+            UpdateSignalBar(SigDownlinkScale, SigDownlinkText, downlink, "DL");
+
+            // 3) PKT LOSS / LATENCY 텍스트 & 상태 색상
+            PktLossText.Text = $"{pktLoss:0.0} %";
+            LatencyText.Text = $"{latency:0} ms";
+
+            // 색상: 초록/노랑/빨강 간단 룰
+            PktLossIndicator.Fill = GetStatusColor(pktLoss, 1.0, 3.0);   // <1% 초록, <3% 노랑, 나머지 빨강
+            LatencyIndicator.Fill = GetStatusColor(latency, 120, 250);   // <120ms 초록, <250ms 노랑, 나머지 빨강
+
+            // 4) 웨이브폼: uplink 품질 기반으로 히스토리 추가
+            double norm = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
+            _signalHistory.Add(norm);
+            if (_signalHistory.Count > SignalHistoryCount)
+                _signalHistory.RemoveAt(0);
+
+            UpdateSignalWavePolyline();
+        }
+        private void UpdateSignalBar(ScaleTransform scale,
+                             TextBlock label,
+                             double value,
+                             string prefix)
+        {
+            double norm = Math.Max(0.0, Math.Min(1.0, value / 100.0));
+            double sx = 0.05 + norm * 0.95;  // 최소 5% 길이 확보
+            scale.ScaleX = sx;
+
+            label.Text = $"{prefix}: {value:0}%";
+        }
+
+        private Brush GetStatusColor(double value, double warnThreshold, double dangerThreshold)
+        {
+            // value 기준으로 초록/노랑/빨강
+            // - 좋은 쪽으로 작을수록 좋은 값 (loss, latency 같은 지표)
+            if (value < warnThreshold)
+                return new SolidColorBrush(Color.FromRgb(0x3C, 0xFF, 0x9C)); // 초록
+            if (value < dangerThreshold)
+                return new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x57)); // 노랑
+            return new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B));     // 빨강
+        }
 
 
+        private void UpdateSignalWavePolyline()
+        {
+            if (SignalWaveHost.ActualWidth <= 0 || SignalWaveHost.ActualHeight <= 0)
+                return;
 
+            double w = SignalWaveHost.ActualWidth;
+            double h = SignalWaveHost.ActualHeight;
 
+            int n = _signalHistory.Count;
+            if (n < 2) return;
 
+            double dx = w / (SignalHistoryCount - 1);
+            var pts = new PointCollection();
 
+            for (int i = 0; i < SignalHistoryCount; i++)
+            {
+                double v = (i < n) ? _signalHistory[i] : 0.0;   // 0~1
+                double x = i * dx;
+                double y = h - v * h;                           // 아래가 0, 위가 1
 
+                pts.Add(new Point(x, y));
+            }
 
-
-
+            SignalWave.Points = pts;
+        }
 
 
 
@@ -1095,7 +1198,7 @@ namespace SciFiConsoleWpf
             StartRadar();
 
             // Data Stream도 같이 시작
-            StartDataStream();
+            //StartDataStream();
 
             VideoSourcePanel.Visibility = Visibility.Collapsed;
         }
@@ -1105,7 +1208,7 @@ namespace SciFiConsoleWpf
             ShowLayer(LayerMap);
 
             StopRadar();
-            StopDataStream();
+            //StopDataStream();
 
             if (!mapInitialized)
             {
@@ -1123,7 +1226,7 @@ namespace SciFiConsoleWpf
             VideoSourcePanel.Visibility = Visibility.Visible;
 
             StopRadar();
-            StopDataStream();
+            //StopDataStream();
 
             if (!videoInitialized)
             {
