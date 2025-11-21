@@ -152,7 +152,8 @@ namespace SciFiConsoleWpf
             if (MapControl != null)
             {
                 // 이벤트 핸들러 해제
-                MapControl.MouseLeftButtonDown -= MapControl_MouseLeftButtonDown;
+                //MapControl.MouseLeftButtonDown -= MapControl_MouseLeftButtonDown;
+                MapControl.MouseDown -= MapControl_MouseDown;
                 MapControl.OnMapDrag -= MapControl_OnMapDrag;
                 MapControl.OnMapZoomChanged -= MapControl_OnMapZoomChanged;
 
@@ -209,9 +210,42 @@ namespace SciFiConsoleWpf
 
             // 지도 이벤트 연결
             // 여기 수정
-            MapControl.MouseLeftButtonDown += MapControl_MouseLeftButtonDown;
+            //MapControl.MouseLeftButtonDown += MapControl_MouseLeftButtonDown;
+            MapControl.MouseDown += MapControl_MouseDown;
+            
+            // 지도 드래그를 오른쪽 버튼으로 하게 설정 (GMap 속성)
+            MapControl.DragButton = MouseButton.Left;
+
             MapControl.OnMapDrag += MapControl_OnMapDrag;
             MapControl.OnMapZoomChanged += MapControl_OnMapZoomChanged;
+        }
+
+        private void MapControl_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 실제 어떤 버튼이 눌렸는지 여기서 정확히 알 수 있음
+            //Console.WriteLine("Changed Button : " + e.ChangedButton);
+            AddLogEntry($"MouseDown ChangedButton={e.ChangedButton}, Left={e.LeftButton}, Right={e.RightButton}");
+
+            // 왼쪽 버튼일 때만 타겟/상세박스 생성
+            if (e.ChangedButton == MouseButton.Right)
+            {
+                // 1) 클릭 지점 (MapControl 기준)
+                var pMap = e.GetPosition(MapControl);
+
+                // 2) 화면 좌표를 HudOverlay 기준으로 변환
+                var pOverlay = MapControl.TranslatePoint(pMap, HudOverlay);
+
+                // 3) 위도/경도
+                var latLng = MapControl.FromLocalToLatLng((int)pMap.X, (int)pMap.Y);
+
+                CreateDetailBox(latLng, pOverlay);
+            }
+            else if (e.ChangedButton == MouseButton.Left)
+            {
+                // 오른쪽 버튼은 지도 드래그 용으로 그냥 GMap에 넘김
+                // (아무 것도 안 해도 DragButton = Right 덕분에 드래그 동작)
+                // 필요하면 여기서 우클릭 메뉴 띄우거나, 전체 Clear 같은 동작도 가능
+            }
         }
 
         private void InitVideo()
