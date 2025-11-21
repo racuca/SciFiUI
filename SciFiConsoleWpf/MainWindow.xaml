@@ -42,55 +42,6 @@
             <Setter Property="Margin" Value="0,0,0,2"/>
         </Style>
         <!-- 기존 브러시/스타일 밑에 추가 -->
-        <Storyboard x:Key="UiAnimations">
-            <!-- 레이더 링 움직임 -->
-            <DoubleAnimation
-                Storyboard.TargetName="RadarCircle1"
-                Storyboard.TargetProperty="StrokeDashOffset"
-                From="0" To="15"
-                Duration="0:0:1"
-                RepeatBehavior="Forever"/>
-
-            <DoubleAnimation
-                Storyboard.TargetName="RadarCircle2"
-                Storyboard.TargetProperty="StrokeDashOffset"
-                From="0" To="20"
-                Duration="0:0:1.6"
-                RepeatBehavior="Forever"/>
-
-            <DoubleAnimation
-                Storyboard.TargetName="RadarCircle3"
-                Storyboard.TargetProperty="StrokeDashOffset"
-                From="0" To="30"
-                Duration="0:0:1"
-                RepeatBehavior="Forever"/>
-
-            <!-- FOV 스캐닝 애니메이션 -->
-            <DoubleAnimation
-                Storyboard.TargetName="FovRotateAnim"
-                Storyboard.TargetProperty="Angle"
-                From="-20" To="20"
-                Duration="0:0:1.8"
-                AutoReverse="True"
-                RepeatBehavior="Forever"/>
-
-            <!-- 타겟 흔들림 애니메이션 (LayerAnimation 전용) -->
-            <DoubleAnimation
-                Storyboard.TargetName="TargetAnimTransform"
-                Storyboard.TargetProperty="X"
-                From="80" To="100"
-                Duration="0:0:2.5"
-                AutoReverse="True"
-                RepeatBehavior="Forever"/>
-
-            <DoubleAnimation
-                Storyboard.TargetName="TargetAnimTransform"
-                Storyboard.TargetProperty="Y"
-                From="-60" To="-30"
-                Duration="0:0:2"
-                AutoReverse="True"
-                RepeatBehavior="Forever"/>
-        </Storyboard>
         <Style x:Key="SciFiButton" TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="FontSize" Value="11"/>
@@ -140,6 +91,73 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Data Stream Analyzer 바 애니메이션 -->
+        <Storyboard x:Key="DataStreamAnimations">
+
+            <!-- 각 바마다 ScaleY를 올렸다 내렸다 반복 -->
+            <DoubleAnimation Storyboard.TargetName="DataBar0Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.2" To="1.0"
+                         Duration="0:0:0.7"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever" />
+
+            <DoubleAnimation Storyboard.TargetName="DataBar1Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.3" To="0.9"
+                         Duration="0:0:0.5"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever"
+                         BeginTime="0:0:0.1" />
+
+            <DoubleAnimation Storyboard.TargetName="DataBar2Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.1" To="0.8"
+                         Duration="0:0:0.6"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever"
+                         BeginTime="0:0:0.2" />
+
+            <DoubleAnimation Storyboard.TargetName="DataBar3Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.4" To="1.0"
+                         Duration="0:0:0.4"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever"
+                         BeginTime="0:0:0.05" />
+
+            <DoubleAnimation Storyboard.TargetName="DataBar4Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.2" To="0.9"
+                         Duration="0:0:0.8"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever"
+                         BeginTime="0:0:0.15" />
+
+            <DoubleAnimation Storyboard.TargetName="DataBar5Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.3" To="0.7"
+                         Duration="0:0:0.45"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever"
+                         BeginTime="0:0:0.25" />
+
+            <DoubleAnimation Storyboard.TargetName="DataBar6Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.5" To="1.0"
+                         Duration="0:0:0.9"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever"
+                         BeginTime="0:0:0.3" />
+
+            <DoubleAnimation Storyboard.TargetName="DataBar7Scale"
+                         Storyboard.TargetProperty="ScaleY"
+                         From="0.2" To="0.95"
+                         Duration="0:0:0.55"
+                         AutoReverse="True"
+                         RepeatBehavior="Forever"
+                         BeginTime="0:0:0.18" />
+        </Storyboard>
     </Window.Resources>
     <Grid Background="{StaticResource BgMain}">
         <Grid.RowDefinitions>
@@ -302,7 +320,166 @@
                            Margin="0,0,0,10"/>
                     </Grid>
                 </Grid>
+                <!-- ▼▼▼ 여기서부터 Data Stream Analyzer ▼▼▼ -->
+                <Grid x:Name="DataStreamPanel"
+                      Width="420"
+                      Height="120"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,0,30">
+                    <Border CornerRadius="6"
+                        Background="#091018"
+                        BorderBrush="#1C3A55"
+                        BorderThickness="1">
+                        <Grid Margin="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
+                            <!-- 헤더 -->
+                            <StackPanel Orientation="Horizontal"
+                            Grid.Row="0"
+                            VerticalAlignment="Center">
+                                <TextBlock Text="DATA STREAM ANALYZER"
+                               Foreground="{StaticResource TextPrimary}"
+                               FontSize="11"
+                               FontWeight="Bold" />
+                                <TextBlock Text="   |   UPLINK: 2.4GHz   DOWNLINK: 5.8GHz"
+                               Foreground="{StaticResource TextSecondary}"
+                               FontSize="9"
+                               Margin="8,0,0,0" />
+                            </StackPanel>
+
+                            <!-- 본체: 그리드 + 바 그래프 -->
+                            <Grid Grid.Row="1"
+                      Margin="0,4,0,0">
+                                <!-- 얇은 수직 그리드 라인 -->
+                                <Canvas>
+                                    <Line X1="0"   Y1="0" X2="0"   Y2="80" Stroke="#102030" StrokeThickness="1"/>
+                                    <Line X1="60"  Y1="0" X2="60"  Y2="80" Stroke="#102030" StrokeThickness="1"/>
+                                    <Line X1="120" Y1="0" X2="120" Y2="80" Stroke="#102030" StrokeThickness="1"/>
+                                    <Line X1="180" Y1="0" X2="180" Y2="80" Stroke="#102030" StrokeThickness="1"/>
+                                    <Line X1="240" Y1="0" X2="240" Y2="80" Stroke="#102030" StrokeThickness="1"/>
+                                    <Line X1="300" Y1="0" X2="300" Y2="80" Stroke="#102030" StrokeThickness="1"/>
+                                    <Line X1="360" Y1="0" X2="360" Y2="80" Stroke="#102030" StrokeThickness="1"/>
+                                </Canvas>
+
+                                <!-- 바 그래프 -->
+                                <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Margin="0,4,0,0">
+                                    <!-- 8개 채널 -->
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar0"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#00E4FF">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar0Scale"
+                                                    ScaleY="0.3"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar1"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#00FF88">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar1Scale"
+                                                    ScaleY="0.4"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar2"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#00E4FF">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar2Scale"
+                                                    ScaleY="0.2"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar3"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#FFCC33">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar3Scale"
+                                                    ScaleY="0.6"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar4"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#00E4FF">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar4Scale"
+                                                    ScaleY="0.5"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar5"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#00FF88">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar5Scale"
+                                                    ScaleY="0.3"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar6"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#00E4FF">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar6Scale"
+                                                    ScaleY="0.7"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+
+                                    <Border Width="12" Height="80" Margin="4,0"
+                                Background="#081017">
+                                        <Rectangle x:Name="DataBar7"
+                                       VerticalAlignment="Bottom"
+                                       Fill="#FF4D4D">
+                                            <Rectangle.RenderTransform>
+                                                <ScaleTransform x:Name="DataBar7Scale"
+                                                    ScaleY="0.4"
+                                                    CenterY="1"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <!-- ▲▲▲ Data Stream Analyzer 끝 ▲▲▲ -->
 
                 <!-- ========== Layer 1 : MAP ========== -->
                 <Grid x:Name="LayerMap" Visibility="Collapsed">

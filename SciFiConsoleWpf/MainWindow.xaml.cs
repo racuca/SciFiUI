@@ -61,9 +61,6 @@ namespace SciFiConsoleWpf
         private const double DetailBoxMargin = 20;
         private const double DetailBoxGap = 10;
 
-        private Storyboard _uiStoryboard;   // 애니메이션 저장용 필드
-
-
         bool mapInitialized = false;
 
 
@@ -83,7 +80,8 @@ namespace SciFiConsoleWpf
         private double _radarAngle = 0;          // 현재 스윕 각도
         private bool _radarDetectedThisTurn = false;
 
-        private Storyboard _lockOnStoryboard;
+        private Storyboard _dataStreamStoryboard;
+
 
         public MainWindow()
         {
@@ -96,9 +94,8 @@ namespace SciFiConsoleWpf
             );
 
             // 1) UI 애니메이션 시작
-            //_uiStoryboard = (Storyboard)FindResource("UiAnimations");
-            //_uiStoryboard.Begin(this, true);
-           
+            _dataStreamStoryboard = (Storyboard)FindResource("DataStreamAnimations");
+
             // 2) 시계/진행률 타이머 설정
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1);
@@ -152,11 +149,12 @@ namespace SciFiConsoleWpf
             }
 
             // 2) 애니메이션 정지
-            if (_uiStoryboard != null)
+            if (_dataStreamStoryboard != null)
             {
-                _uiStoryboard.Stop(this);
-                _uiStoryboard = null;
+                _dataStreamStoryboard.Stop(this);
+                _dataStreamStoryboard = null;
             }
+
 
             // 3) GMap 정리
             if (MapControl != null)
@@ -200,6 +198,8 @@ namespace SciFiConsoleWpf
                 }
             }
             catch { }
+
+            StopDataStream();
 
             // 마지막으로 애플리케이션 정리
             Application.Current.Shutdown();  // 이 줄은 선택이지만, 확실하게 끝낼 수 있음
@@ -404,6 +404,19 @@ namespace SciFiConsoleWpf
             if (_radarTimer != null && _radarTimer.IsEnabled)
                 _radarTimer.Stop();
         }
+
+
+        private void StartDataStream()
+        {
+            _dataStreamStoryboard?.Begin(this, true);
+        }
+
+        private void StopDataStream()
+        {
+            _dataStreamStoryboard?.Stop(this);
+        }
+
+
 
         private void MapControl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -785,21 +798,24 @@ namespace SciFiConsoleWpf
         private void btnShowAnim_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerAnimation);
-            //_uiStoryboard.Begin(this, true);  // 시작
-
+            
             VideoSourcePanel.Visibility = Visibility.Collapsed;
             
             StartRadar();
+
+            // Data Stream도 같이 시작
+            StartDataStream();
+
         }
 
         private void btnShowMap_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerMap);
-            //_uiStoryboard.Stop(this);         // 중단
 
             VideoSourcePanel.Visibility = Visibility.Collapsed;
 
             StopRadar();
+            StopDataStream();
 
             if (!mapInitialized)
             {
@@ -811,11 +827,11 @@ namespace SciFiConsoleWpf
         private void btnShowVideo_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerVideo);
-            //_uiStoryboard.Stop(this);         // 중단
 
             VideoSourcePanel.Visibility = Visibility.Visible;
 
             StopRadar();
+            StopDataStream();
 
             if (!videoInitialized)
             {
