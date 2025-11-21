@@ -77,6 +77,14 @@ namespace SciFiConsoleWpf
         private VideoCaptureDevice _videoSource;
 
 
+
+        // 레이더 관련
+        private DispatcherTimer _radarTimer;
+        private double _radarAngle = 0;          // 현재 스윕 각도
+        private bool _radarDetectedThisTurn = false;
+
+        private Storyboard _lockOnStoryboard;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -88,14 +96,16 @@ namespace SciFiConsoleWpf
             );
 
             // 1) UI 애니메이션 시작
-            _uiStoryboard = (Storyboard)FindResource("UiAnimations");
-            _uiStoryboard.Begin(this, true);
-
+            //_uiStoryboard = (Storyboard)FindResource("UiAnimations");
+            //_uiStoryboard.Begin(this, true);
+           
             // 2) 시계/진행률 타이머 설정
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += _timer_Tick;
             //_timer.Start();
+
+            RadarCanvas.Loaded += (s, e) => InitRadar(); 
         }
 
         private void _timer_Tick(object sender, EventArgs e)
@@ -194,7 +204,6 @@ namespace SciFiConsoleWpf
             // 마지막으로 애플리케이션 정리
             Application.Current.Shutdown();  // 이 줄은 선택이지만, 확실하게 끝낼 수 있음
         }
-
 
         private void InitMap()
         {
@@ -300,6 +309,100 @@ namespace SciFiConsoleWpf
             // 마지막 항목: 네트워크 스트림
             cmbVideoSource.Items.Add("NETWORK STREAM (URL)");
             cmbVideoSource.SelectedIndex = 0;
+        }
+
+
+        private void InitRadar()
+        {
+            // 타겟 점 위치 (예: 반지름 90, 각도 45도 방향)
+            // 필요하면 Map과 연동해서 바꿀 수 있음.
+            double radius = 90;
+            double deg = 45;           // 0 = 오른쪽, 90 = 위쪽 기준으로 쓰고 싶으면 보정
+            double rad = deg * Math.PI / 180.0;
+
+            double cx = RadarCanvas.ActualWidth > 0 ? RadarCanvas.ActualWidth / 2 : 130;
+            double cy = RadarCanvas.ActualHeight > 0 ? RadarCanvas.ActualHeight / 2 : 130;
+
+            double tx = cx + radius * Math.Cos(rad);
+            double ty = cy - radius * Math.Sin(rad); // 화면 y축 반전
+
+            // 타겟 점 배치
+            Canvas.SetLeft(RadarTargetDot, tx - RadarTargetDot.Width / 2);
+            Canvas.SetTop(RadarTargetDot, ty - RadarTargetDot.Height / 2);
+
+            // 레이더 타이머 (50ms = 20fps 정도)
+            _radarTimer = new DispatcherTimer();
+            _radarTimer.Interval = TimeSpan.FromMilliseconds(50);
+            _radarTimer.Tick += _radarTimer_Tick;
+            _radarTimer.Start();
+        }
+
+        private void _radarTimer_Tick(object sender, EventArgs e)
+        {
+            // 각도 증가
+            _radarAngle += 3; // 50ms * 3deg = 60deg/sec
+            if (_radarAngle >= 360)
+            {
+                _radarAngle -= 360;
+                _radarDetectedThisTurn = false;  // 한 바퀴 돌았으니 다시 탐지 가능
+            }
+
+            // 스윕 라인 회전
+            RadarSweepRotate.Angle = _radarAngle;
+
+            // 타겟 각도 계산
+            DetectRadarTarget();
+        }
+
+        private void DetectRadarTarget()
+        {
+            double cx = RadarCanvas.ActualWidth / 2;
+            double cy = RadarCanvas.ActualHeight / 2;
+
+            if (cx <= 0 || cy <= 0)
+                return;
+
+            double tx = Canvas.GetLeft(RadarTargetDot) + RadarTargetDot.Width / 2;
+            double ty = Canvas.GetTop(RadarTargetDot) + RadarTargetDot.Height / 2;
+
+            double dx = tx - cx;
+            double dy = cy - ty;  // y축 반전
+
+            // atan2(dy, dx) : 0도 = 오른쪽, 반시계 방향 증가
+            double targetDeg = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+            if (targetDeg < 0) targetDeg += 360;
+
+            // 현재 스윕 각도와 비교
+            double diff = Math.Abs(_radarAngle - targetDeg);
+            if (diff > 180) diff = 360 - diff; // 0/360 기준 보정
+
+            double tolerance = 3.0;  // 몇 도 안에 들어오면 찾은 걸로 볼지
+
+            if (!_radarDetectedThisTurn && diff < tolerance)
+            {
+                _radarDetectedThisTurn = true;
+
+                AddLogEntry($"RADAR TARGET DETECTED AT {targetDeg:0}°");
+                
+                //MessageBox.Show(
+                //    $"타겟을 탐지했습니다!\n각도: {targetDeg:0}°",
+                //    "RADAR",
+                //    MessageBoxButton.OK,
+                //    MessageBoxImage.Information);
+            }
+        }
+
+
+        private void StartRadar()
+        {
+            if (_radarTimer != null && !_radarTimer.IsEnabled)
+                _radarTimer.Start();
+        }
+
+        private void StopRadar()
+        {
+            if (_radarTimer != null && _radarTimer.IsEnabled)
+                _radarTimer.Stop();
         }
 
         private void MapControl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -655,18 +758,18 @@ namespace SciFiConsoleWpf
         {
             AddLogEntry("GIMBAL  TARGET TRACKING TOGGLED");
 
-            // FOV 색상 토글 느낌 (간단하게)
-            var current = ((System.Windows.Media.SolidColorBrush)FovConeAnim.Stroke).Color;
-            if (current == System.Windows.Media.Color.FromRgb(0x18, 0xE4, 0xFF))
-            {
-                FovConeAnim.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange);
-                FovConeAnim.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0xFF, 0x99, 0x33));
-            }
-            else
-            {
-                FovConeAnim.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x18, 0xE4, 0xFF));
-                FovConeAnim.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0x18, 0xE4, 0xFF));
-            }
+            //// FOV 색상 토글 느낌 (간단하게)
+            //var current = ((System.Windows.Media.SolidColorBrush)FovConeAnim.Stroke).Color;
+            //if (current == System.Windows.Media.Color.FromRgb(0x18, 0xE4, 0xFF))
+            //{
+            //    FovConeAnim.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange);
+            //    FovConeAnim.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0xFF, 0x99, 0x33));
+            //}
+            //else
+            //{
+            //    FovConeAnim.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x18, 0xE4, 0xFF));
+            //    FovConeAnim.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0x18, 0xE4, 0xFF));
+            //}
         }
 
         private void ShowLayer(Grid layerToShow)
@@ -682,17 +785,21 @@ namespace SciFiConsoleWpf
         private void btnShowAnim_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerAnimation);
-            _uiStoryboard.Begin(this, true);  // 시작
+            //_uiStoryboard.Begin(this, true);  // 시작
 
             VideoSourcePanel.Visibility = Visibility.Collapsed;
+            
+            StartRadar();
         }
 
         private void btnShowMap_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerMap);
-            _uiStoryboard.Stop(this);         // 중단
+            //_uiStoryboard.Stop(this);         // 중단
 
             VideoSourcePanel.Visibility = Visibility.Collapsed;
+
+            StopRadar();
 
             if (!mapInitialized)
             {
@@ -704,9 +811,11 @@ namespace SciFiConsoleWpf
         private void btnShowVideo_Click(object sender, RoutedEventArgs e)
         {
             ShowLayer(LayerVideo);
-            _uiStoryboard.Stop(this);         // 중단
+            //_uiStoryboard.Stop(this);         // 중단
 
             VideoSourcePanel.Visibility = Visibility.Visible;
+
+            StopRadar();
 
             if (!videoInitialized)
             {

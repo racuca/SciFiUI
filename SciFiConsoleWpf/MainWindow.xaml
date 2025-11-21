@@ -249,69 +249,58 @@
             <Grid x:Name="CentralPanelRoot">
                 <!-- ========== Layer 0 : Default SF Animation Screen ========== -->
                 <Grid x:Name="LayerAnimation">
-                    <!-- 레이더 중심점 -->
-                    <Ellipse Width="10" Height="10"
-                         Fill="#00E4FF"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
+                    <Grid HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      Width="260" Height="260">
 
-                    <!-- 레이더 원 1 -->
-                    <Ellipse Width="120" Height="120"
-                         Stroke="#00E4FF" StrokeThickness="1"
-                         StrokeDashArray="4 2"
-                         x:Name="RadarCircle1"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
+                        <!-- 컨센트릭 레이더 원들 -->
+                        <Ellipse Stroke="#2233AA" StrokeThickness="1"/>
+                        <Ellipse Margin="20" Stroke="#3355FF" StrokeThickness="1"/>
+                        <Ellipse Margin="40" Stroke="#4477FF" StrokeThickness="1"/>
+                        <Ellipse Margin="60" Stroke="#66AAFF" StrokeThickness="1"/>
 
-                    <!-- 레이더 원 2 -->
-                    <Ellipse Width="180" Height="180"
-                         Stroke="#33465C" StrokeThickness="1"
-                         StrokeDashArray="4 2"
-                         x:Name="RadarCircle2"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
+                        <!-- 십자 격자선 -->
+                        <Line X1="0" Y1="130" X2="260" Y2="130"
+                          Stroke="#335577" StrokeThickness="1" />
+                        <Line X1="130" Y1="0" X2="130" Y2="260"
+                          Stroke="#335577" StrokeThickness="1" />
 
-                    <!-- 레이더 원 3 -->
-                    <Ellipse Width="260" Height="260"
-                         Stroke="#00E4FF" StrokeThickness="1"
-                         StrokeDashArray="6 3"
-                         x:Name="RadarCircle3"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
+                        <!-- 대각선 격자선 (옵션) -->
+                        <Line X1="0" Y1="0" X2="260" Y2="260"
+                          Stroke="#223344" StrokeThickness="0.7" />
+                        <Line X1="260" Y1="0" X2="0" Y2="260"
+                          Stroke="#223344" StrokeThickness="0.7" />
 
-                    <!-- FOV 삼각형 -->
-                    <Polygon x:Name="FovConeAnim"
-                         Fill="#3318E4FF"
-                         Stroke="#18E4FF"
-                         StrokeThickness="1"
-                         Points="0,60  40,0  80,60"
-                         RenderTransformOrigin="0.5,0.5"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center">
-                        <Polygon.RenderTransform>
-                            <RotateTransform x:Name="FovRotateAnim" Angle="-20"/>
-                        </Polygon.RenderTransform>
-                     </Polygon>
+                        <!-- 레이더 스윕 라인 -->
+                        <Canvas x:Name="RadarCanvas">
+                            <!-- 중심 기준으로 위쪽으로 뻗는 선 하나 -->
+                            <Line x:Name="RadarSweepLine"
+                                X1="130" Y1="130"
+                                X2="130" Y2="10"
+                                Stroke="#00FF88"
+                                StrokeThickness="2">
+                                <Line.RenderTransform>
+                                    <RotateTransform x:Name="RadarSweepRotate"
+                                     CenterX="130" CenterY="130"
+                                     Angle="0"/>
+                                </Line.RenderTransform>
+                            </Line>
 
-                     <!-- 타겟 점(기본 HUD 애니메이션용) -->
-                     <Ellipse Width="12" Height="12"
-                         Fill="#FF4D4D"
-                         Stroke="White" StrokeThickness="1"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center">
-                        <Ellipse.RenderTransform>
-                            <TranslateTransform x:Name="TargetAnimTransform"
-                                X="80" Y="-60"/>
-                        </Ellipse.RenderTransform>
-                     </Ellipse>
+                            <!-- 타겟 점 (예시: 오른쪽 위에 하나) -->
+                            <Ellipse x:Name="RadarTargetDot"
+                                 Width="8" Height="8"
+                                 Fill="#FF4D4D"
+                                 Stroke="White" StrokeThickness="1"/>
+                        </Canvas>
 
-                     <!-- 텍스트 -->
-                     <TextBlock Text="SYSTEM READY"
+                        <!-- 텍스트 -->
+                        <TextBlock Text="RADAR SWEEP"
                            Foreground="{StaticResource TextPrimary}"
-                           FontSize="14" FontWeight="Bold"
+                           FontSize="12"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Bottom"
-                           Margin="0,0,0,40"/>
+                           Margin="0,0,0,10"/>
+                    </Grid>
                 </Grid>
 
 
@@ -431,10 +420,10 @@
                     Width="80"
                     Style="{StaticResource SciFiButton}"
                     Click="btnDisarm_Click"/>
-                    <Button x:Name="btnTrack" Content="TRACK"
+                    <!--<Button x:Name="btnTrack" Content="TRACK"
                     Width="80"
                     Style="{StaticResource SciFiButton}"
-                    Click="btnTrack_Click"/>
+                    Click="btnTrack_Click"/>-->
                 </StackPanel>
             </Border>
             <!-- VIDEO 소스 선택 패널 -->
