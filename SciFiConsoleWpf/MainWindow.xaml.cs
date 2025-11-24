@@ -31,21 +31,13 @@ namespace SciFiConsoleWpf
     public partial class MainWindow : Window
     {
 
-        //private DispatcherTimer _timer;
         private double _missionProgress = 0;
         private int _tickCount = 0;
 
         private Random _rand = new Random();
 
 
-        // 지도
-        private bool _hasTarget = false;
-        private double _targetLat;
-        private double _targetLng;
-
-
-
-        private class TargetDetail
+        private sealed class TargetDetail
         {
             public Border Box;
             public Line Line;
@@ -79,23 +71,6 @@ namespace SciFiConsoleWpf
         // 레이더 관련
         private DispatcherTimer _radarTimer;
         private double _radarAngle = 0;          // 현재 스윕 각도
-        private bool _radarDetectedThisTurn = false;
-
-        //private Storyboard _dataStreamStoryboard;
-
-        //private DispatcherTimer _dataStreamTimer;
-
-        //private class DataStreamBar
-        //{
-        //    public ScaleTransform Scale;  // Y 스케일만 조정
-        //    public double Target;         // 목표 높이 (0.2 ~ 1.0)
-        //    public double Speed;          // 반응 속도 계수
-        //}
-
-        //private readonly List<DataStreamBar> _dataBars = new List<DataStreamBar>();
-
-
-
 
 
         // POWER SYSTEM 모니터링
@@ -125,7 +100,7 @@ namespace SciFiConsoleWpf
 
         #region Aircraft wireframe
 
-        private class Vec3
+        private sealed class Vec3
         {
             public double X, Y, Z;
             public Vec3(double x, double y, double z)
@@ -157,19 +132,7 @@ namespace SciFiConsoleWpf
                 new FrameworkPropertyMetadata(30)
             );
 
-            // 1) UI 애니메이션 시작
-            //_dataStreamStoryboard = (Storyboard)FindResource("DataStreamAnimations");
-
-            // 2) 시계/진행률 타이머 설정
-            //_timer = new DispatcherTimer();
-            //_timer.Interval = TimeSpan.FromSeconds(1);
-            //_timer.Tick += _timer_Tick;
-            //_timer.Start();
-
             RadarCanvas.Loaded += (s, e) => InitRadar();
-
-            // Data Stream 초기화
-            //DataStreamPanel.Loaded += (s, e) => InitDataStream();
 
             CPURAMPanel.Loaded += (s, e) => InitPowerSystemMonitor();
 
@@ -203,7 +166,7 @@ namespace SciFiConsoleWpf
             txtHdg.Text = $"   HDG: {hdg:000}°";
 
             // 4) 타겟 정보 텍스트 (타겟 Transform 사용)
-            //txtTargetInfo.Text = $"TGT: {TargetTransform.X:000.0} , {TargetTransform.Y:000.0}";
+
 
             // 5) 3초에 한 번씩 EVENT LOG 추가
             if (_tickCount % 6 == 0)   // 0.5초 * 6 = 3초
@@ -214,26 +177,6 @@ namespace SciFiConsoleWpf
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            // 1) 타이머 정지
-            //if (_timer != null)
-            //{
-            //   _timer.Stop();
-            //    _timer.Tick -= _timer_Tick;
-            //    _timer = null;
-            //}
-
-            // 2) 애니메이션 정지
-            //if (_dataStreamStoryboard != null)
-            //{
-            //    _dataStreamStoryboard.Stop(this);
-            //    _dataStreamStoryboard = null;
-            //}
-            //if (_dataStreamTimer != null)
-            //{
-            //    _dataStreamTimer.Stop();
-            //    _dataStreamTimer.Tick -= DataStreamTimer_Tick;
-            //    _dataStreamTimer = null;
-            //}
 
             // 3) GMap 정리
             if (MapControl != null)
@@ -275,10 +218,12 @@ namespace SciFiConsoleWpf
                     _libVLC = null;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("VLC cleanup error: " + ex.Message);
+            }
 
-            //StopDataStream();
-
+            
             if (_powerTimer != null)
             {
                 _powerTimer.Stop();
@@ -819,7 +764,6 @@ namespace SciFiConsoleWpf
 
             // 지도 이벤트 연결
             // 여기 수정
-            //MapControl.MouseLeftButtonDown += MapControl_MouseLeftButtonDown;
             MapControl.MouseDown += MapControl_MouseDown;
             
             // 지도 드래그를 오른쪽 버튼으로 하게 설정 (GMap 속성)
@@ -832,7 +776,6 @@ namespace SciFiConsoleWpf
         private void MapControl_MouseDown(object sender, MouseButtonEventArgs e)
         {
             // 실제 어떤 버튼이 눌렸는지 여기서 정확히 알 수 있음
-            //Console.WriteLine("Changed Button : " + e.ChangedButton);
             AddLogEntry($"MouseDown ChangedButton={e.ChangedButton}, Left={e.LeftButton}, Right={e.RightButton}");
 
             // 왼쪽 버튼일 때만 타겟/상세박스 생성
@@ -952,7 +895,7 @@ namespace SciFiConsoleWpf
             if (_radarAngle >= 360)
             {
                 _radarAngle -= 360;
-                _radarDetectedThisTurn = false;  // 한 바퀴 돌았으니 다시 탐지 가능
+                //_radarDetectedThisTurn = false;  // 한 바퀴 돌았으니 다시 탐지 가능
             }
 
             // 스윕 라인 회전
@@ -988,17 +931,10 @@ namespace SciFiConsoleWpf
 
             if (diff < tolerance)
             {
-                _radarDetectedThisTurn = true;
                 
                 RadarTargetDot.Visibility = Visibility.Visible; 
 
                 AddLogEntry($"RADAR TARGET DETECTED AT {targetDeg:0}°");
-                
-                //MessageBox.Show(
-                //    $"타겟을 탐지했습니다!\n각도: {targetDeg:0}°",
-                //    "RADAR",
-                //    MessageBoxButton.OK,
-                //    MessageBoxImage.Information);
             }
             else
             {
@@ -1030,154 +966,6 @@ namespace SciFiConsoleWpf
             if (_aircraftTimer != null && _aircraftTimer.IsEnabled)
                 _aircraftTimer.Stop();
         }
-
-
-        //private void StartDataStream()
-        //{
-        //    if (_dataStreamTimer == null)
-        //        InitDataStream();
-        //    else
-        //        _dataStreamTimer.Start();
-        //}
-
-        //private void StopDataStream()
-        //{
-        //    _dataStreamTimer?.Stop();
-        //}
-
-        //private void InitDataStream()
-        //{
-        //    if (_dataStreamTimer != null)
-        //        return; // 이미 초기화 되어 있으면 다시 안 함
-
-        //    // 1) 막대들을 넣을 StackPanel 하나 만들기
-        //    var host = DataStreamBarsHost;
-        //    host.Children.Clear();
-
-        //    var stack = new StackPanel
-        //    {
-        //        Orientation = Orientation.Horizontal,
-        //        HorizontalAlignment = HorizontalAlignment.Center,
-        //        VerticalAlignment = VerticalAlignment.Bottom,
-        //        Margin = new Thickness(0, 4, 0, 0)
-        //    };
-        //    host.Children.Add(stack);
-
-        //    // 2) 8개의 바 생성
-        //    int barCount = 8;
-        //    _dataBars.Clear();
-
-        //    for (int i = 0; i < barCount; i++)
-        //    {
-        //        var border = new Border
-        //        {
-        //            Width = 12,
-        //            Height = 80,
-        //            Margin = new Thickness(4, 0, 4, 0),
-        //            Background = (Brush)new SolidColorBrush(Color.FromRgb(0x08, 0x10, 0x17))
-        //        };
-
-        //        var rect = new Rectangle
-        //        {
-        //            VerticalAlignment = VerticalAlignment.Bottom,
-        //            Fill = GetBarColor(i),
-        //            Height = 80
-        //        };
-
-        //        Console.WriteLine("Bar Color : " + rect.Fill.ToString());
-
-        //        // 아래를 기준으로 스케일 되도록 설정
-        //        rect.RenderTransformOrigin = new Point(0.5, 1.0);
-        //        var scale = new ScaleTransform
-        //        {
-        //            ScaleX = 1.0,
-        //            ScaleY = 0.2  // 초기 높이
-        //        };
-        //        rect.RenderTransform = scale;
-
-        //        border.Child = rect;
-        //        stack.Children.Add(border);
-
-        //        var bar = new DataStreamBar
-        //        {
-        //            Scale = scale,
-        //            Target = 0.2 + _rand.NextDouble() * 0.8,         // 0.2~1.0
-        //            Speed = 0.10 + _rand.NextDouble() * 0.15         // 0.10~0.25
-        //        };
-        //        _dataBars.Add(bar);
-        //        Console.WriteLine($"Add bar {i} to UI");
-        //    }
-
-        //    Console.WriteLine("Host children: " + host.Children.Count);
-
-        //    // 3) 타이머 설정 (약 16 fps)
-        //    _dataStreamTimer = new DispatcherTimer
-        //    {
-        //        Interval = TimeSpan.FromMilliseconds(60)
-        //    };
-        //    _dataStreamTimer.Tick += DataStreamTimer_Tick;
-        //    _dataStreamTimer.Start();
-        //}
-
-        private Brush GetBarColor(int index)
-        {
-            // 조금씩 다른 색으로
-            //switch (index % 4)
-            //{
-            //    case 0: return new SolidColorBrush(Color.FromRgb(0x00, 0xE4, 0xFF)); // 사이언
-            //    case 1: return new SolidColorBrush(Color.FromRgb(0x00, 0xFF, 0x88)); // 라임
-            //    case 2: return new SolidColorBrush(Color.FromRgb(0xFF, 0xCC, 0x33)); // 옐로우
-            //    default: return new SolidColorBrush(Color.FromRgb(0xFF, 0x4D, 0x4D)); // 레드
-            //}
-
-            // 전체 UI 컨셉에 맞춘 디지털 팔레트
-            // index에 따라 적당히 로테이션
-            byte a = 0xA0; // 반투명
-            switch (index % 6)
-            {
-                case 0: // Primary Cyan
-                    return new SolidColorBrush(Color.FromArgb(a, 0x18, 0xE4, 0xFF)); // #18E4FF
-
-                case 1: // Soft Cyan
-                    return new SolidColorBrush(Color.FromArgb(a, 0x4F, 0xD8, 0xFF)); // #4FD8FF
-
-                case 2: // Neo Green
-                    return new SolidColorBrush(Color.FromArgb(a, 0x3C, 0xFF, 0x9C)); // #3CFF9C
-
-                case 3: // Muted Blue
-                    return new SolidColorBrush(Color.FromArgb(a, 0x1F, 0x6F, 0xFF)); // #1F6FFF
-
-                case 4: // Amber
-                    return new SolidColorBrush(Color.FromArgb(a, 0xFF, 0xC8, 0x57)); // #FFC857
-
-                default: // Warning Red
-                    return new SolidColorBrush(Color.FromArgb(a, 0xFF, 0x6B, 0x6B)); // #FF6B6B
-            }
-        }
-
-        //private void DataStreamTimer_Tick(object sender, EventArgs e)
-        //{
-        //    foreach (var bar in _dataBars)
-        //    {
-        //        double current = bar.Scale.ScaleY;
-
-        //        // 목표값을 향해 조금씩 보간 (lerp)
-        //        double next = current + (bar.Target - current) * bar.Speed;
-
-        //        // 최소/최대 한 번 더 제한
-        //        if (next < 0.1) next = 0.1;
-        //        if (next > 1.0) next = 1.0;
-
-        //        bar.Scale.ScaleY = next;
-
-        //        // 목표에 거의 도달하면 새 목표로 변경
-        //        if (Math.Abs(bar.Target - next) < 0.03)
-        //        {
-        //            bar.Target = 0.2 + _rand.NextDouble() * 0.8; // 0.2~1.0 사이 새로운 목표
-        //        }
-        //    }
-        //}
-
 
 
         /// <summary>
@@ -1224,6 +1012,9 @@ namespace SciFiConsoleWpf
 
         private void CreateDetailBox(PointLatLng latLng, Point clickPoint)
         {
+            if (_detailBoxes.Count > 5)
+                return;
+
             // 1) 박스를 왼쪽/오른쪽 어느쪽에 둘지 결정
             double mapWidth = MapControl.ActualWidth;
             double mapHeight = MapControl.ActualHeight;
@@ -1451,9 +1242,6 @@ namespace SciFiConsoleWpf
             HudOverlay.Children.Remove(detail.Box);
             HudOverlay.Children.Remove(detail.Line);
             _detailBoxes.Remove(detail);
-
-            // 남아 있는 박스들 다시 정렬해도 되고 (선택 사항)
-            //RearrangeDetailBoxes();
         }
 
         private void UpdateDetailBoxesVisibility()
@@ -1532,23 +1320,6 @@ namespace SciFiConsoleWpf
             LinkLed.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0x4D, 0x4D));
         }
 
-        private void btnTrack_Click(object sender, RoutedEventArgs e)
-        {
-            AddLogEntry("GIMBAL  TARGET TRACKING TOGGLED");
-
-            //// FOV 색상 토글 느낌 (간단하게)
-            //var current = ((System.Windows.Media.SolidColorBrush)FovConeAnim.Stroke).Color;
-            //if (current == System.Windows.Media.Color.FromRgb(0x18, 0xE4, 0xFF))
-            //{
-            //    FovConeAnim.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Orange);
-            //    FovConeAnim.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0xFF, 0x99, 0x33));
-            //}
-            //else
-            //{
-            //    FovConeAnim.Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x18, 0xE4, 0xFF));
-            //    FovConeAnim.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x33, 0x18, 0xE4, 0xFF));
-            //}
-        }
 
         private void ShowLayer(Grid layerToShow)
         {
@@ -1567,9 +1338,6 @@ namespace SciFiConsoleWpf
             StartRadar();
             StartAircraft();
 
-            // Data Stream도 같이 시작
-            //StartDataStream();
-
             VideoSourcePanel.Visibility = Visibility.Collapsed;
         }
 
@@ -1579,7 +1347,6 @@ namespace SciFiConsoleWpf
 
             StopRadar();
             StopAircraft();
-            //StopDataStream();
 
             if (!mapInitialized)
             {
@@ -1598,8 +1365,7 @@ namespace SciFiConsoleWpf
 
             StopRadar();
             StopAircraft();
-            //StopDataStream();
-
+            
             if (!videoInitialized)
             {
                 Task.Run(() =>
@@ -1674,16 +1440,6 @@ namespace SciFiConsoleWpf
             StopCamera();
         }
 
-        private void TestSampleVideo()
-        {
-            // 샘플 MP4 HTTP
-            string testUrl = txtStreamUrl.Text; // "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
-            var media = new Media(_libVLC, testUrl, FromType.FromLocation);
-            media.AddOption(":network-caching=300");
-            _mediaPlayer.Play(media);
-        }
-
         private void StartCamera(string camName)
         {
             // VLC 재생 중이면 먼저 끄고
@@ -1741,7 +1497,10 @@ namespace SciFiConsoleWpf
                         _videoSource.SignalToStop();
                     _videoSource.WaitForStop();
                 }
-                catch { }
+                catch (Exception ex) 
+                {
+                    Debug.WriteLine("StopCamera Exception: " + ex.Message);
+                }
                 _videoSource = null;
             }
 
