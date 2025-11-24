@@ -463,6 +463,7 @@
                     <ListBox x:Name="EventLogList"
                  Background="Transparent"
                  BorderThickness="0"
+                             Height="100"
                  Foreground="{StaticResource TextSecondary}"
                  FontSize="10">
                         <ListBox.ItemContainerStyle>
@@ -482,7 +483,11 @@
             <Grid x:Name="CentralPanelRoot">
                 <!-- ========== Layer 0 : Default SF Animation Screen ========== -->
                 <Grid x:Name="LayerAnimation">
-                    <Grid HorizontalAlignment="Center"
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid HorizontalAlignment="Center" Grid.Row="0"
                       VerticalAlignment="Center"
                       Width="260" Height="260">
 
@@ -534,6 +539,19 @@
                            VerticalAlignment="Bottom"
                            Margin="0,0,0,10"/>
                     </Grid>
+                    <Canvas x:Name="AircraftCanvas"
+                             Grid.Row="1"
+                             Width="200"
+                             Height="160"
+                             HorizontalAlignment="Center"
+                             Margin="0,10,0,00">
+                        <TextBlock Text="AIRFRAME ORIENTATION"
+                   Foreground="{StaticResource TextSecondary}"
+                   FontSize="10"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   Margin="4,0,0,0" />
+                    </Canvas>
                     <!-- 🔽 아래쪽 Data Stream 패널 (껍데기만)
                     <Grid x:Name="DataStreamPanel"
                           Width="420"
