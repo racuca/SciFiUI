@@ -550,13 +550,12 @@
                     </Border>
                 </Grid>
 
-
                 <!-- ========== Overlay Buttons (Always shown) ========== -->
                 <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     Margin="0,0,0,0">
-                    <Button Content="ANIMATION" Click="btnShowAnim_Click"
+                    <Button Content="RADAR" Click="btnShowAnim_Click"
                     Style="{StaticResource SciFiButton}"
                     Width="120"/>
                     <Button Content="MAP" Click="btnShowMap_Click"
@@ -566,7 +565,6 @@
                     Style="{StaticResource SciFiButton}"
                     Width="80"/>
                 </StackPanel>
-
 
                 <!-- 좌상단 제목 -->
                 <TextBlock Text="TERRAIN / SECTOR-07"
