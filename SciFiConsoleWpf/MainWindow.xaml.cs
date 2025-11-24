@@ -83,16 +83,16 @@ namespace SciFiConsoleWpf
 
         //private Storyboard _dataStreamStoryboard;
 
-        private DispatcherTimer _dataStreamTimer;
+        //private DispatcherTimer _dataStreamTimer;
 
-        private class DataStreamBar
-        {
-            public ScaleTransform Scale;  // Y 스케일만 조정
-            public double Target;         // 목표 높이 (0.2 ~ 1.0)
-            public double Speed;          // 반응 속도 계수
-        }
+        //private class DataStreamBar
+        //{
+        //    public ScaleTransform Scale;  // Y 스케일만 조정
+        //    public double Target;         // 목표 높이 (0.2 ~ 1.0)
+        //    public double Speed;          // 반응 속도 계수
+        //}
 
-        private readonly List<DataStreamBar> _dataBars = new List<DataStreamBar>();
+        //private readonly List<DataStreamBar> _dataBars = new List<DataStreamBar>();
 
 
 
@@ -115,7 +115,11 @@ namespace SciFiConsoleWpf
         private const int SignalHistoryCount = 40;
         private readonly List<double> _signalHistory = new List<double>();
 
-
+        // Signal Analytics 영역 그래프용
+        private const int SignalChartPoints = 30;
+        private readonly List<double> _series1 = new List<double>(); // uplink 기반
+        private readonly List<double> _series2 = new List<double>(); // downlink 기반
+        private readonly List<double> _series3 = new List<double>(); // noise / interference
         public MainWindow()
         {
             InitializeComponent();
@@ -195,12 +199,12 @@ namespace SciFiConsoleWpf
             //    _dataStreamStoryboard.Stop(this);
             //    _dataStreamStoryboard = null;
             //}
-            if (_dataStreamTimer != null)
-            {
-                _dataStreamTimer.Stop();
-                _dataStreamTimer.Tick -= DataStreamTimer_Tick;
-                _dataStreamTimer = null;
-            }
+            //if (_dataStreamTimer != null)
+            //{
+            //    _dataStreamTimer.Stop();
+            //    _dataStreamTimer.Tick -= DataStreamTimer_Tick;
+            //    _dataStreamTimer = null;
+            //}
 
             // 3) GMap 정리
             if (MapControl != null)
@@ -276,6 +280,296 @@ namespace SciFiConsoleWpf
             Application.Current.Shutdown();  // 이 줄은 선택이지만, 확실하게 끝낼 수 있음
         }
 
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////
+        /// 왼쪽 패널
+        ////////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        /// Power System 모니터링 초기화
+        /// </summary>
+        private void InitPowerSystemMonitor()
+        {
+            // 1) XAML ScaleTransform 레퍼런스 연결
+            _cpuScales = new[]
+            {
+                Cpu0Scale,
+                Cpu1Scale
+            };
+            _ramScale = RamScale;
+            _gpuScale = GpuScale;
+
+            int coreCount = _cpuScales.Length;
+
+            // 2) CPU 퍼포먼스 카운터 (Core0, Core1)
+            _cpuCounters = new PerformanceCounter[coreCount];
+            for (int i = 0; i < coreCount; i++)
+            {
+                _cpuCounters[i] = new PerformanceCounter(
+                    "Processor",
+                    "% Processor Time",
+                    i.ToString());     // "0", "1"
+                _cpuCounters[i].NextValue(); // 첫 값 버리기
+            }
+
+            // 3) RAM 퍼포먼스 카운터 (% 사용률)
+            _ramCounter = new PerformanceCounter(
+                "Memory",
+                "% Committed Bytes In Use");
+            _ramCounter.NextValue();
+
+            // 4) 타이머 설정 (1초마다 갱신)
+            _powerTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _powerTimer.Tick += _powerTimer_Tick;
+            _powerTimer.Start();
+        }
+
+        private void _powerTimer_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                // CPU Core 0,1
+                for (int i = 0; i < _cpuScales.Length && i < _cpuCounters.Length; i++)
+                {
+                    float cpu = _cpuCounters[i].NextValue();   // 0~100
+                    double norm = Math.Max(0.0, Math.Min(1.0, cpu / 100.0)); // 0~1
+
+                    // 너무 완전 0이 되지 않게 0.05~1.0 범위
+                    double scale = 0.05 + norm * 0.95;
+                    _cpuScales[i].ScaleX = scale;
+                }
+
+                // RAM
+                float ram = _ramCounter.NextValue();           // 0~100
+                double ramNorm = Math.Max(0.0, Math.Min(1.0, ram / 100.0));
+                _ramScale.ScaleX = 0.05 + ramNorm * 0.95;
+
+                // GPU (임시: 전체 CPU 평균 기반 가상 값)
+                double avgCpu =
+                    (_cpuCounters[0].NextValue() +
+                     _cpuCounters[1].NextValue()) / 2.0;
+
+                double gpuTarget = Math.Max(0.0, Math.Min(1.0, avgCpu / 100.0));
+
+                // 약간 느리게 따라오는 필터 걸어서 부드럽게
+                _gpuDisplayValue += (gpuTarget - _gpuDisplayValue) * 0.3;
+                _gpuScale.ScaleX = 0.05 + _gpuDisplayValue * 0.95;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("PowerTimer error: " + ex.Message);
+            }
+        }
+
+
+        /// <summary>
+        /// 시그널 애널리틱스 초기화
+        /// </summary>
+        private void InitSignalAnalytics()
+        {
+            if (_signalTimer != null)
+                return; // 한 번만 초기화
+
+            // 초기 히스토리 0으로 채워두기
+            _signalHistory.Clear();
+            for (int i = 0; i < SignalHistoryCount; i++)
+            {
+                _signalHistory.Add(0.0);
+            }
+
+            _series1.Clear();
+            _series2.Clear();
+            _series3.Clear();
+
+            // 처음에는 0으로 채워두기
+            for (int i = 0; i < SignalChartPoints; i++)
+            {
+                _series1.Add(0.3);
+                _series2.Add(0.4);
+                _series3.Add(0.2);
+            }
+
+            // 타이머: 200ms 정도면 부드럽게 움직임
+            _signalTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(200)
+            };
+            _signalTimer.Tick += SignalTimer_Tick;
+            _signalTimer.Start();
+        }
+
+
+        int signalAnalyticsCounter = 0;
+        private void SignalTimer_Tick(object sender, EventArgs e)
+        {
+            signalAnalyticsCounter++;
+            if (signalAnalyticsCounter % 5 == 0)
+            {
+                // 1) 데모용 값 생성 (나중에 실제 값으로 교체)
+                // 대략 60~100% 사이에서 왔다 갔다 하는 느낌
+                double uplink = 60 + _rand.NextDouble() * 40;    // 60~100
+                double downlink = 55 + _rand.NextDouble() * 45;  // 55~100
+
+                double pktLoss = _rand.NextDouble() * 3.0;       // 0~3 %
+                double latency = 30 + _rand.NextDouble() * 150;  // 30~180 ms
+
+                // 2) 막대 (0~1 정규화 → ScaleX)
+                UpdateSignalBar(SigUplinkScale, SigUplinkText, uplink, "UL");
+                UpdateSignalBar(SigDownlinkScale, SigDownlinkText, downlink, "DL");
+
+                // 3) PKT LOSS / LATENCY 텍스트 & 상태 색상
+                PktLossText.Text = $"{pktLoss:0.0} %";
+                LatencyText.Text = $"{latency:0} ms";
+
+                // 색상: 초록/노랑/빨강 간단 룰
+                PktLossIndicator.Fill = GetStatusColor(pktLoss, 1.0, 3.0);   // <1% 초록, <3% 노랑, 나머지 빨강
+                LatencyIndicator.Fill = GetStatusColor(latency, 120, 250);   // <120ms 초록, <250ms 노랑, 나머지 빨강
+
+                // 4) 웨이브폼: uplink 품질 기반으로 히스토리 추가
+                double norm = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
+                _signalHistory.Add(norm);
+                if (_signalHistory.Count > SignalHistoryCount)
+                    _signalHistory.RemoveAt(0);
+
+                UpdateSignalWavePolyline();
+
+                // 3) 영역 그래프용 시리즈 업데이트 (0~1로 정규화)
+                double s1 = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
+                double s2 = Math.Max(0.0, Math.Min(1.0, downlink / 100.0));
+
+                // s3는 잡음/간섭 느낌 – uplink/downlink 기준으로 약간 랜덤
+                double noiseBase = 1.0 - Math.Max(s1, s2); // 품질 좋을수록 noise 작게
+                double s3 = Math.Max(0.0, Math.Min(1.0, noiseBase + (_rand.NextDouble() - 0.5) * 0.2));
+
+                AppendSeries(_series1, s1);
+                AppendSeries(_series2, s2);
+                AppendSeries(_series3, s3);
+            }
+
+            // 4) 그래프 다시 그리기
+            UpdateSignalAreaChart();
+
+        }
+
+
+        private void UpdateSignalBar(ScaleTransform scale,
+                             TextBlock label,
+                             double value,
+                             string prefix)
+        {
+            double norm = Math.Max(0.0, Math.Min(1.0, value / 100.0));
+            double sx = 0.05 + norm * 0.95;  // 최소 5% 길이 확보
+            scale.ScaleX = sx;
+
+            label.Text = $"{prefix}: {value:0}%";
+        }
+
+        private Brush GetStatusColor(double value, double warnThreshold, double dangerThreshold)
+        {
+            // value 기준으로 초록/노랑/빨강
+            // - 좋은 쪽으로 작을수록 좋은 값 (loss, latency 같은 지표)
+            if (value < warnThreshold)
+                return new SolidColorBrush(Color.FromRgb(0x3C, 0xFF, 0x9C)); // 초록
+            if (value < dangerThreshold)
+                return new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x57)); // 노랑
+            return new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B));     // 빨강
+        }
+
+
+        private void UpdateSignalWavePolyline()
+        {
+            if (SignalWaveHost.ActualWidth <= 0 || SignalWaveHost.ActualHeight <= 0)
+                return;
+
+            double w = SignalWaveHost.ActualWidth;
+            double h = SignalWaveHost.ActualHeight;
+
+            int n = _signalHistory.Count;
+            if (n < 2) return;
+
+            double dx = w / (SignalHistoryCount - 1);
+            var pts = new PointCollection();
+
+            for (int i = 0; i < SignalHistoryCount; i++)
+            {
+                double v = (i < n) ? _signalHistory[i] : 0.0;   // 0~1
+                double x = i * dx;
+                double y = h - v * h;                           // 아래가 0, 위가 1
+
+                pts.Add(new Point(x, y));
+            }
+
+            SignalWave.Points = pts;
+        }
+
+
+        private void AppendSeries(List<double> series, double value)
+        {
+            series.Add(value);
+            if (series.Count > SignalChartPoints)
+                series.RemoveAt(0);
+        }
+
+        private void UpdateSignalAreaChart()
+        {
+            double w = SignalChartHost.ActualWidth;
+            double h = SignalChartHost.ActualHeight;
+            if (w <= 0 || h <= 0) return;
+
+            int n = SignalChartPoints;
+            double dx = w / (n - 1);
+
+            // 1) 시리즈 → Polygon Points 로 변환
+            PointCollection BuildArea(List<double> s)
+            {
+                var pts = new PointCollection();
+
+                // 윗 라인 (좌 → 우)
+                for (int i = 0; i < n; i++)
+                {
+                    double v = (i < s.Count) ? s[i] : 0.0;
+                    double x = i * dx;
+                    double y = h - v * h;   // 아래쪽이 0, 위쪽이 1
+                    pts.Add(new Point(x, y));
+                }
+
+                // 밑변 (우 → 좌)
+                pts.Add(new Point((n - 1) * dx, h));
+                pts.Add(new Point(0, h));
+
+                return pts;
+            }
+
+            SigArea1.Points = BuildArea(_series1);
+            SigArea2.Points = BuildArea(_series2);
+            SigArea3.Points = BuildArea(_series3);
+        }
+
+
+
+        private void AddLogEntry(string message)
+        {
+            string time = DateTime.Now.ToString("HH:mm:ss");
+            string line = $"{time}  {message}";
+            EventLogList.Items.Insert(0, line);     // 최근 로그가 위로 오게
+            if (EventLogList.Items.Count > 20)      // 20줄 넘으면 오래된 건 삭제
+            {
+                EventLogList.Items.RemoveAt(EventLogList.Items.Count - 1);
+            }
+        }
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////
+        /// 중간 패널 
+        ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        /// 맵 초기화
+        /// </summary>
         private void InitMap()
         {
             // GMap 기본 설정
@@ -328,6 +622,10 @@ namespace SciFiConsoleWpf
             }
         }
 
+
+        /// <summary>
+        /// Video 초기화
+        /// </summary>
         private void InitVideo()
         {
 
@@ -382,7 +680,9 @@ namespace SciFiConsoleWpf
             cmbVideoSource.SelectedIndex = 0;
         }
 
-
+        /// <summary>
+        /// 레이더 초기화
+        /// </summary>
         private void InitRadar()
         {
             // 타겟 점 위치 (예: 반지름 90, 각도 45도 방향)
@@ -477,6 +777,8 @@ namespace SciFiConsoleWpf
         }
 
 
+
+
         //private void StartDataStream()
         //{
         //    if (_dataStreamTimer == null)
@@ -489,7 +791,7 @@ namespace SciFiConsoleWpf
         //{
         //    _dataStreamTimer?.Stop();
         //}
-        
+
         //private void InitDataStream()
         //{
         //    if (_dataStreamTimer != null)
@@ -600,211 +902,28 @@ namespace SciFiConsoleWpf
             }
         }
 
-        private void DataStreamTimer_Tick(object sender, EventArgs e)
-        {
-            foreach (var bar in _dataBars)
-            {
-                double current = bar.Scale.ScaleY;
+        //private void DataStreamTimer_Tick(object sender, EventArgs e)
+        //{
+        //    foreach (var bar in _dataBars)
+        //    {
+        //        double current = bar.Scale.ScaleY;
 
-                // 목표값을 향해 조금씩 보간 (lerp)
-                double next = current + (bar.Target - current) * bar.Speed;
+        //        // 목표값을 향해 조금씩 보간 (lerp)
+        //        double next = current + (bar.Target - current) * bar.Speed;
 
-                // 최소/최대 한 번 더 제한
-                if (next < 0.1) next = 0.1;
-                if (next > 1.0) next = 1.0;
+        //        // 최소/최대 한 번 더 제한
+        //        if (next < 0.1) next = 0.1;
+        //        if (next > 1.0) next = 1.0;
 
-                bar.Scale.ScaleY = next;
+        //        bar.Scale.ScaleY = next;
 
-                // 목표에 거의 도달하면 새 목표로 변경
-                if (Math.Abs(bar.Target - next) < 0.03)
-                {
-                    bar.Target = 0.2 + _rand.NextDouble() * 0.8; // 0.2~1.0 사이 새로운 목표
-                }
-            }
-        }
-
-
-
-        private void InitPowerSystemMonitor()
-        {
-            // 1) XAML ScaleTransform 레퍼런스 연결
-            _cpuScales = new[]
-            {
-                Cpu0Scale,
-                Cpu1Scale
-            };
-            _ramScale = RamScale;
-            _gpuScale = GpuScale;
-
-            int coreCount = _cpuScales.Length;
-
-            // 2) CPU 퍼포먼스 카운터 (Core0, Core1)
-            _cpuCounters = new PerformanceCounter[coreCount];
-            for (int i = 0; i < coreCount; i++)
-            {
-                _cpuCounters[i] = new PerformanceCounter(
-                    "Processor",
-                    "% Processor Time",
-                    i.ToString());     // "0", "1"
-                _cpuCounters[i].NextValue(); // 첫 값 버리기
-            }
-
-            // 3) RAM 퍼포먼스 카운터 (% 사용률)
-            _ramCounter = new PerformanceCounter(
-                "Memory",
-                "% Committed Bytes In Use");
-            _ramCounter.NextValue();
-
-            // 4) 타이머 설정 (1초마다 갱신)
-            _powerTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
-            _powerTimer.Tick += _powerTimer_Tick; ;
-            _powerTimer.Start();
-        }
-
-        private void _powerTimer_Tick(object sender, EventArgs e)
-        {
-            try
-            {
-                // CPU Core 0,1
-                for (int i = 0; i < _cpuScales.Length && i < _cpuCounters.Length; i++)
-                {
-                    float cpu = _cpuCounters[i].NextValue();   // 0~100
-                    double norm = Math.Max(0.0, Math.Min(1.0, cpu / 100.0)); // 0~1
-
-                    // 너무 완전 0이 되지 않게 0.05~1.0 범위
-                    double scale = 0.05 + norm * 0.95;
-                    _cpuScales[i].ScaleX = scale;
-                }
-
-                // RAM
-                float ram = _ramCounter.NextValue();           // 0~100
-                double ramNorm = Math.Max(0.0, Math.Min(1.0, ram / 100.0));
-                _ramScale.ScaleX = 0.05 + ramNorm * 0.95;
-
-                // GPU (임시: 전체 CPU 평균 기반 가상 값)
-                double avgCpu =
-                    (_cpuCounters[0].NextValue() +
-                     _cpuCounters[1].NextValue()) / 2.0;
-
-                double gpuTarget = Math.Max(0.0, Math.Min(1.0, avgCpu / 100.0));
-
-                // 약간 느리게 따라오는 필터 걸어서 부드럽게
-                _gpuDisplayValue += (gpuTarget - _gpuDisplayValue) * 0.3;
-                _gpuScale.ScaleX = 0.05 + _gpuDisplayValue * 0.95;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("PowerTimer error: " + ex.Message);
-            }
-        }
-
-
-        private void InitSignalAnalytics()
-        {
-            if (_signalTimer != null)
-                return; // 한 번만 초기화
-
-            // 초기 히스토리 0으로 채워두기
-            _signalHistory.Clear();
-            for (int i = 0; i < SignalHistoryCount; i++)
-            {
-                _signalHistory.Add(0.0);
-            }
-
-            // 타이머: 200ms 정도면 부드럽게 움직임
-            _signalTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
-            _signalTimer.Tick += SignalTimer_Tick;
-            _signalTimer.Start();
-        }
-
-        private void SignalTimer_Tick(object sender, EventArgs e)
-        {
-            // 1) 데모용 값 생성 (나중에 실제 값으로 교체)
-            // 대략 60~100% 사이에서 왔다 갔다 하는 느낌
-            double uplink = 60 + _rand.NextDouble() * 40;    // 60~100
-            double downlink = 55 + _rand.NextDouble() * 45;  // 55~100
-
-            double pktLoss = _rand.NextDouble() * 3.0;       // 0~3 %
-            double latency = 30 + _rand.NextDouble() * 150;  // 30~180 ms
-
-            // 2) 막대 (0~1 정규화 → ScaleX)
-            UpdateSignalBar(SigUplinkScale, SigUplinkText, uplink, "UL");
-            UpdateSignalBar(SigDownlinkScale, SigDownlinkText, downlink, "DL");
-
-            // 3) PKT LOSS / LATENCY 텍스트 & 상태 색상
-            PktLossText.Text = $"{pktLoss:0.0} %";
-            LatencyText.Text = $"{latency:0} ms";
-
-            // 색상: 초록/노랑/빨강 간단 룰
-            PktLossIndicator.Fill = GetStatusColor(pktLoss, 1.0, 3.0);   // <1% 초록, <3% 노랑, 나머지 빨강
-            LatencyIndicator.Fill = GetStatusColor(latency, 120, 250);   // <120ms 초록, <250ms 노랑, 나머지 빨강
-
-            // 4) 웨이브폼: uplink 품질 기반으로 히스토리 추가
-            double norm = Math.Max(0.0, Math.Min(1.0, uplink / 100.0));
-            _signalHistory.Add(norm);
-            if (_signalHistory.Count > SignalHistoryCount)
-                _signalHistory.RemoveAt(0);
-
-            UpdateSignalWavePolyline();
-        }
-        private void UpdateSignalBar(ScaleTransform scale,
-                             TextBlock label,
-                             double value,
-                             string prefix)
-        {
-            double norm = Math.Max(0.0, Math.Min(1.0, value / 100.0));
-            double sx = 0.05 + norm * 0.95;  // 최소 5% 길이 확보
-            scale.ScaleX = sx;
-
-            label.Text = $"{prefix}: {value:0}%";
-        }
-
-        private Brush GetStatusColor(double value, double warnThreshold, double dangerThreshold)
-        {
-            // value 기준으로 초록/노랑/빨강
-            // - 좋은 쪽으로 작을수록 좋은 값 (loss, latency 같은 지표)
-            if (value < warnThreshold)
-                return new SolidColorBrush(Color.FromRgb(0x3C, 0xFF, 0x9C)); // 초록
-            if (value < dangerThreshold)
-                return new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x57)); // 노랑
-            return new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B));     // 빨강
-        }
-
-
-        private void UpdateSignalWavePolyline()
-        {
-            if (SignalWaveHost.ActualWidth <= 0 || SignalWaveHost.ActualHeight <= 0)
-                return;
-
-            double w = SignalWaveHost.ActualWidth;
-            double h = SignalWaveHost.ActualHeight;
-
-            int n = _signalHistory.Count;
-            if (n < 2) return;
-
-            double dx = w / (SignalHistoryCount - 1);
-            var pts = new PointCollection();
-
-            for (int i = 0; i < SignalHistoryCount; i++)
-            {
-                double v = (i < n) ? _signalHistory[i] : 0.0;   // 0~1
-                double x = i * dx;
-                double y = h - v * h;                           // 아래가 0, 위가 1
-
-                pts.Add(new Point(x, y));
-            }
-
-            SignalWave.Points = pts;
-        }
-
-
-
+        //        // 목표에 거의 도달하면 새 목표로 변경
+        //        if (Math.Abs(bar.Target - next) < 0.03)
+        //        {
+        //            bar.Target = 0.2 + _rand.NextDouble() * 0.8; // 0.2~1.0 사이 새로운 목표
+        //        }
+        //    }
+        //}
 
 
 
@@ -1139,18 +1258,15 @@ namespace SciFiConsoleWpf
         }
 
 
-
-        private void AddLogEntry(string message)
-        {
-            string time = DateTime.Now.ToString("HH:mm:ss");
-            string line = $"{time}  {message}";
-            EventLogList.Items.Insert(0, line);     // 최근 로그가 위로 오게
-            if (EventLogList.Items.Count > 20)      // 20줄 넘으면 오래된 건 삭제
-            {
-                EventLogList.Items.RemoveAt(EventLogList.Items.Count - 1);
-            }
-        }
-
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        /// 오른쪽 패널
+        ////////////////////////////////////////////////////////////////////////////////////////// 
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnArm_Click(object sender, RoutedEventArgs e)
         {
             AddLogEntry("UAV#03  ARM COMMAND SENT");

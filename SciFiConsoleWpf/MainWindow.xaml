@@ -397,7 +397,63 @@
                     </Grid>
                 </Grid>
             </Border>
+            <!-- 모듈 4번째 Row: 3겹 영역 그래프 -->
+            <Border Style="{StaticResource ModulePanel}" Height="190">
+                <Grid Margin="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
+                    <!-- 제목 -->
+                    <TextBlock Grid.Row="0"
+                       Text="Three Axis Chart"
+                       Foreground="{StaticResource TextPrimary}"
+                       FontSize="11"
+                       FontWeight="Bold"
+                       Margin="0,0,0,4"/>
+
+                    <Grid x:Name="SignalChartHost"
+                      Grid.Row="1"
+                      Margin="0,4,0,0"
+                      Background="#050A12">
+                        <Canvas x:Name="SignalChartCanvas">
+                            <!-- 세로 그리드 라인 -->
+                            <Line X1="0"   Y1="0" X2="0"   Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="40"  Y1="0" X2="40"  Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="80"  Y1="0" X2="80"  Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="120" Y1="0" X2="120" Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="160" Y1="0" X2="160" Y2="100" Stroke="#101822" StrokeThickness="1"/>
+
+                            <!-- 가로 그리드 라인 -->
+                            <Line X1="0"   Y1="25" X2="200" Y2="25" Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="0"   Y1="50" X2="200" Y2="50" Stroke="#101822" StrokeThickness="1"/>
+                            <Line X1="0"   Y1="75" X2="200" Y2="75" Stroke="#101822" StrokeThickness="1"/>
+                        </Canvas>
+
+                        <!-- 영역 3개 (뒤에서 앞으로) -->
+                        <Polygon x:Name="SigArea3" Fill="#2218E4FF" StrokeThickness="0"/>
+                        <Polygon x:Name="SigArea2" Fill="#331F6FFF" StrokeThickness="0"/>
+                        <Polygon x:Name="SigArea1" Fill="#6618E4FF" StrokeThickness="0"/>
+
+                        <!-- 좌측 상단 레이블 -->
+                        <StackPanel Orientation="Vertical"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="4,2,0,0">
+                            <TextBlock Text="DATA 01"
+                            Foreground="{StaticResource TextSecondary}"
+                            FontSize="9"/>
+                            <TextBlock Text="DATA 02"
+                            Foreground="{StaticResource TextSecondary}"
+                            FontSize="9"/>
+                            <TextBlock Text="DATA 03"
+                            Foreground="{StaticResource TextSecondary}"
+                            FontSize="9"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
             <!-- 모듈 3: 로그 창 -->
             <Border Style="{StaticResource ModulePanel}" VerticalAlignment="Stretch">
                 <StackPanel>
