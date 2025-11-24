@@ -135,12 +135,14 @@ namespace SciFiConsoleWpf
         }
 
         private readonly List<Vec3> _aircraftPoints = new List<Vec3>();
-        private readonly List<(int a, int b)> _aircraftEdges = new List<(int a, int b)>();
-        private readonly List<Line> _aircraftLines = new List<Line>();
-        private readonly List<Ellipse> _aircraftNodes = new List<Ellipse>();
+
+        // 면(페이스) 정의 + 폴리곤 UI
+        private readonly List<int[]> _aircraftFaces = new List<int[]>();
+        private readonly List<Polygon> _aircraftPolygons = new List<Polygon>();
 
         private DispatcherTimer _aircraftTimer;
-        private double _aircraftAngle = 0;   // z축 기준 회전 각도 (라디안)
+        private double _aircraftAngle = 0;   // 회전 각도 (yaw 기준, 라디안)
+
 
         #endregion
 
@@ -608,72 +610,92 @@ namespace SciFiConsoleWpf
             if (_aircraftTimer != null)
                 return;
 
-            // 1) 기체 3D 포인트 정의 (좀 더 '비행기 같은' 형태)
+            // 1) 3D 포인트 정의 (뾰족한 노즈 + 두께 있는 동체 + 주날개)
             _aircraftPoints.Clear();
 
-            // 좌표계: X = 전방(+), Y = 좌/우, Z = 위(+)
-            // 동체 앞(코) 부분 상/하
-            _aircraftPoints.Add(new Vec3(1.0, 0.0, 0.12));   // 0 nose top
-            _aircraftPoints.Add(new Vec3(1.0, 0.0, -0.12));   // 1 nose bottom
+            // 좌표계: X = 전방(+), Y = 좌/우(+ 오른쪽), Z = 위(+)
 
-            // 동체 중간 상/하
-            _aircraftPoints.Add(new Vec3(0.2, 0.0, 0.12));   // 2 mid top
-            _aircraftPoints.Add(new Vec3(0.2, 0.0, -0.12));   // 3 mid bottom
+            // --- 코(tip) ---
+            _aircraftPoints.Add(new Vec3(1.2, 0.0, 0.0));   // 0 tip (가장 뾰족한 앞부분)
 
-            // 동체 뒤(꼬리) 상/하
-            _aircraftPoints.Add(new Vec3(-1.0, 0.0, 0.18));   // 4 tail top
-            _aircraftPoints.Add(new Vec3(-1.0, 0.0, -0.10));   // 5 tail bottom
+            // --- 동체 앞 단면 (노즈 단면 사각형) ---
+            _aircraftPoints.Add(new Vec3(1.0, 0.15, 0.15)); // 1 nose TL
+            _aircraftPoints.Add(new Vec3(1.0, -0.15, 0.15)); // 2 nose TR
+            _aircraftPoints.Add(new Vec3(1.0, -0.15, -0.15)); // 3 nose BR
+            _aircraftPoints.Add(new Vec3(1.0, 0.15, -0.15)); // 4 nose BL
 
-            // 메인 날개 (좌우, 앞/뒤)
-            _aircraftPoints.Add(new Vec3(0.1, 1.1, 0.02));   // 6 right wing front
-            _aircraftPoints.Add(new Vec3(-0.2, 1.1, 0.00));   // 7 right wing rear
-            _aircraftPoints.Add(new Vec3(0.1, -1.1, 0.02));   // 8 left wing front
-            _aircraftPoints.Add(new Vec3(-0.2, -1.1, 0.00));   // 9 left wing rear
+            // --- 동체 뒤 단면 (꼬리쪽 사각형, 살짝 좁아지고 높아짐) ---
+            _aircraftPoints.Add(new Vec3(-1.0, 0.10, 0.22)); // 5 tail TL
+            _aircraftPoints.Add(new Vec3(-1.0, -0.10, 0.22)); // 6 tail TR
+            _aircraftPoints.Add(new Vec3(-1.0, -0.10, -0.12)); // 7 tail BR
+            _aircraftPoints.Add(new Vec3(-1.0, 0.10, -0.12)); // 8 tail BL
 
-            // 수평꼬리날개
-            _aircraftPoints.Add(new Vec3(-0.8, 0.5, 0.02));   // 10 right tail wing front
-            _aircraftPoints.Add(new Vec3(-1.05, 0.5, 0.00));   // 11 right tail wing rear
-            _aircraftPoints.Add(new Vec3(-0.8, -0.5, 0.02));   // 12 left tail wing front
-            _aircraftPoints.Add(new Vec3(-1.05, -0.5, 0.00));   // 13 left tail wing rear
+            // --- 메인 날개 (동체 옆에 붙은 사다리꼴) ---
+            // 오른쪽 주날개 (+Y)
+            _aircraftPoints.Add(new Vec3(0.2, 0.20, 0.02)); //  9 right wing root front
+            _aircraftPoints.Add(new Vec3(-0.2, 0.20, 0.02)); // 10 right wing root rear
+            _aircraftPoints.Add(new Vec3(0.2, 1.40, 0.02)); // 11 right wing tip front
+            _aircraftPoints.Add(new Vec3(-0.2, 1.40, 0.02)); // 12 right wing tip rear
 
-            // 수직꼬리날개 윗점
-            _aircraftPoints.Add(new Vec3(-1.05, 0.0, 0.45));   // 14 vertical tail top
+            // 왼쪽 주날개 (-Y)
+            _aircraftPoints.Add(new Vec3(0.2, -0.20, 0.02)); // 13 left wing root front
+            _aircraftPoints.Add(new Vec3(-0.2, -0.20, 0.02)); // 14 left wing root rear
+            _aircraftPoints.Add(new Vec3(0.2, -1.40, 0.02)); // 15 left wing tip front
+            _aircraftPoints.Add(new Vec3(-0.2, -1.40, 0.02)); // 16 left wing tip rear
 
-            // 2) 엣지 정의 (선들 연결)
-            _aircraftEdges.Clear();
+            // --- 수평 꼬리날개 ---
+            // 오른쪽 꼬리날개
+            _aircraftPoints.Add(new Vec3(-0.8, 0.18, 0.02)); // 17 right tail wing root front
+            _aircraftPoints.Add(new Vec3(-1.1, 0.18, 0.02)); // 18 right tail wing root rear
+            _aircraftPoints.Add(new Vec3(-1.1, 0.55, 0.02)); // 19 right tail wing tip
 
-            // 동체 상단 윤곽
-            _aircraftEdges.Add((0, 2));
-            _aircraftEdges.Add((2, 4));
+            // 왼쪽 꼬리날개
+            _aircraftPoints.Add(new Vec3(-0.8, -0.18, 0.02)); // 20 left tail wing root front
+            _aircraftPoints.Add(new Vec3(-1.1, -0.18, 0.02)); // 21 left tail wing root rear
+            _aircraftPoints.Add(new Vec3(-1.1, -0.55, 0.02)); // 22 left tail wing tip
 
-            // 동체 하단 윤곽
-            _aircraftEdges.Add((1, 3));
-            _aircraftEdges.Add((3, 5));
+            // --- 수직 꼬리날개 ---
+            _aircraftPoints.Add(new Vec3(-1.1, 0.0, 0.00));  // 23 fin base rear
+            _aircraftPoints.Add(new Vec3(-1.1, 0.0, 0.28));  // 24 fin mid
+            _aircraftPoints.Add(new Vec3(-1.1, 0.0, 0.60));  // 25 fin top
 
-            // 동체 측면 연결
-            _aircraftEdges.Add((0, 1));
-            _aircraftEdges.Add((2, 3));
-            _aircraftEdges.Add((4, 5));
+            // 2) 면(face) 정의
+            _aircraftFaces.Clear();
 
-            // 메인 날개 (사각형 양쪽)
-            _aircraftEdges.Add((6, 7));
-            _aircraftEdges.Add((8, 9));
-            _aircraftEdges.Add((2, 6));
-            _aircraftEdges.Add((2, 8));
-            _aircraftEdges.Add((3, 7));
-            _aircraftEdges.Add((3, 9));
+            // === 뾰족한 코(노즈) 부분: tip + 앞 단면 사각형 4개의 삼각형 ===
+            _aircraftFaces.Add(new[] { 0, 1, 2 }); // 위쪽
+            _aircraftFaces.Add(new[] { 0, 2, 3 }); // 오른쪽
+            _aircraftFaces.Add(new[] { 0, 3, 4 }); // 아래
+            _aircraftFaces.Add(new[] { 0, 4, 1 }); // 왼쪽
 
-            // 수평꼬리날개
-            _aircraftEdges.Add((10, 11));
-            _aircraftEdges.Add((12, 13));
-            _aircraftEdges.Add((4, 10));
-            _aircraftEdges.Add((4, 12));
+            // === 동체 박스 6면 (앞 단면 1~4 ↔ 뒤 단면 5~8) ===
+            // 윗면
+            _aircraftFaces.Add(new[] { 1, 2, 6, 5 });
+            // 아랫면
+            _aircraftFaces.Add(new[] { 4, 3, 7, 8 });
+            // 왼쪽면 (+Y)
+            _aircraftFaces.Add(new[] { 1, 4, 8, 5 });
+            // 오른쪽면 (-Y)
+            _aircraftFaces.Add(new[] { 2, 3, 7, 6 });
+            // 앞면 (노즈 단면)
+            _aircraftFaces.Add(new[] { 1, 2, 3, 4 });
+            // 뒷면 (꼬리 단면)
+            _aircraftFaces.Add(new[] { 5, 6, 7, 8 });
 
-            // 수직꼬리
-            _aircraftEdges.Add((4, 14));
-            _aircraftEdges.Add((5, 14));
+            // === 메인 날개 (사다리꼴 2개) ===
+            // 오른쪽 주날개
+            _aircraftFaces.Add(new[] { 9, 11, 12, 10 });
+            // 왼쪽 주날개
+            _aircraftFaces.Add(new[] { 13, 15, 16, 14 });
 
-            // --- 아래는 기존처럼 UI 요소 생성 ----
+            // === 수평 꼬리날개 (삼각형 2개) ===
+            _aircraftFaces.Add(new[] { 17, 19, 18 }); // 오른쪽 꼬리날개
+            _aircraftFaces.Add(new[] { 20, 22, 21 }); // 왼쪽 꼬리날개
+
+            // === 수직 꼬리날개 (삼각형) ===
+            _aircraftFaces.Add(new[] { 23, 24, 25 });
+
+            // 3) Canvas에 폴리곤 생성
             AircraftCanvas.Children.Clear();
 
             var title = new TextBlock
@@ -687,32 +709,21 @@ namespace SciFiConsoleWpf
             Canvas.SetTop(title, 0);
             AircraftCanvas.Children.Add(title);
 
-            _aircraftLines.Clear();
-            _aircraftNodes.Clear();
+            _aircraftPolygons.Clear();
 
-            foreach (var edge in _aircraftEdges)
+            foreach (var face in _aircraftFaces)
             {
-                var line = new Line
+                var poly = new Polygon
                 {
-                    Stroke = new SolidColorBrush(Color.FromRgb(0x18, 0xE4, 0xFF)),
-                    StrokeThickness = 1.2
+                    Fill = new SolidColorBrush(Color.FromArgb(0x44, 0x18, 0xE4, 0xFF)),   // 반투명 시안
+                    Stroke = new SolidColorBrush(Color.FromArgb(0x88, 0x18, 0xE4, 0xFF)), // 외곽선
+                    StrokeThickness = 0.8
                 };
-                _aircraftLines.Add(line);
-                AircraftCanvas.Children.Add(line);
+                _aircraftPolygons.Add(poly);
+                AircraftCanvas.Children.Add(poly);
             }
 
-            for (int i = 0; i < _aircraftPoints.Count; i++)
-            {
-                var dot = new Ellipse
-                {
-                    Width = 4,
-                    Height = 4,
-                    Fill = new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B))
-                };
-                _aircraftNodes.Add(dot);
-                AircraftCanvas.Children.Add(dot);
-            }
-
+            // 4) 회전 타이머 시작 (기존과 동일)
             _aircraftTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(40)
@@ -736,14 +747,12 @@ namespace SciFiConsoleWpf
                 return;
 
             double cx = AircraftCanvas.ActualWidth / 2.0;
-            double cy = AircraftCanvas.ActualHeight / 2.0 + 10; // 살짝 아래로
-
+            double cy = AircraftCanvas.ActualHeight / 2.0 + 10;
             double scale = Math.Min(AircraftCanvas.ActualWidth, AircraftCanvas.ActualHeight) * 0.35;
 
-            // ▶ 회전각 설정
-            double yaw = _aircraftAngle;                 // 계속 회전 (Z축)
-            double pitch = 0.4;                            // 고정된 pitch (약 23도 기수 들림)
-            double roll = Math.Sin(_aircraftAngle * 0.7) * 0.2; // 살짝 롤링 (양옆으로 기울기)
+            double yaw = _aircraftAngle;
+            double pitch = 0.4;
+            double roll = Math.Sin(_aircraftAngle * 0.7) * 0.2;
 
             double cyaw = Math.Cos(yaw);
             double syaw = Math.Sin(yaw);
@@ -758,23 +767,20 @@ namespace SciFiConsoleWpf
             {
                 var p = _aircraftPoints[i];
 
-                // 1) YAW (Z축 회전) : x,y 회전, z 유지
+                // Yaw → Pitch → Roll
                 double x1 = p.X * cyaw - p.Y * syaw;
                 double y1 = p.X * syaw + p.Y * cyaw;
                 double z1 = p.Z;
 
-                // 2) PITCH (X축 회전) : y,z 회전
                 double x2 = x1;
                 double y2 = y1 * cp - z1 * sp;
                 double z2 = y1 * sp + z1 * cp;
 
-                // 3) ROLL (Y축 회전) : x,z 회전
                 double x3 = x2 * cr + z2 * sr;
                 double y3 = y2;
                 double z3 = -x2 * sr + z2 * cr;
 
-                // 4) 간단한 원근 투영 (y3를 깊이로 사용)
-                double depth = 2.0 + y3;          // y3가 클수록 멀어짐
+                double depth = 2.0 + y3;
                 double sx = x3 / depth;
                 double sy = z3 / depth;
 
@@ -784,34 +790,20 @@ namespace SciFiConsoleWpf
                 projected.Add(new Point(px, py));
             }
 
-            // 5) 선 위치 갱신
-            for (int i = 0; i < _aircraftEdges.Count; i++)
+            // 면(Polygon) 갱신
+            for (int fi = 0; fi < _aircraftFaces.Count; fi++)
             {
-                var (a, b) = _aircraftEdges[i];
-                var line = _aircraftLines[i];
+                var idx = _aircraftFaces[fi];
+                var poly = _aircraftPolygons[fi];
 
-                var pa = projected[a];
-                var pb = projected[b];
-
-                line.X1 = pa.X;
-                line.Y1 = pa.Y;
-                line.X2 = pb.X;
-                line.Y2 = pb.Y;
-            }
-
-            // 6) 점 위치 갱신
-            for (int i = 0; i < _aircraftNodes.Count; i++)
-            {
-                var dot = _aircraftNodes[i];
-                var pt = projected[i];
-
-                Canvas.SetLeft(dot, pt.X - dot.Width / 2);
-                Canvas.SetTop(dot, pt.Y - dot.Height / 2);
+                var pts = new PointCollection();
+                for (int k = 0; k < idx.Length; k++)
+                {
+                    pts.Add(projected[idx[k]]);
+                }
+                poly.Points = pts;
             }
         }
-
-
-
 
         /// <summary>
         /// 맵 초기화

@@ -484,7 +484,7 @@
                 <!-- ========== Layer 0 : Default SF Animation Screen ========== -->
                 <Grid x:Name="LayerAnimation">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid HorizontalAlignment="Center" Grid.Row="0"
@@ -541,10 +541,10 @@
                     </Grid>
                     <Canvas x:Name="AircraftCanvas"
                              Grid.Row="1"
-                             Width="200"
-                             Height="160"
+                             Width="320"
+                             Height="240"
                              HorizontalAlignment="Center"
-                             Margin="0,10,0,00">
+                             Margin="0,10,0,0">
                         <TextBlock Text="AIRFRAME ORIENTATION"
                    Foreground="{StaticResource TextSecondary}"
                    FontSize="10"
