@@ -239,7 +239,6 @@ namespace SciFiConsoleWpf
             if (MapControl != null)
             {
                 // 이벤트 핸들러 해제
-                //MapControl.MouseLeftButtonDown -= MapControl_MouseLeftButtonDown;
                 MapControl.MouseDown -= MapControl_MouseDown;
                 MapControl.OnMapDrag -= MapControl_OnMapDrag;
                 MapControl.OnMapZoomChanged -= MapControl_OnMapZoomChanged;
@@ -304,8 +303,6 @@ namespace SciFiConsoleWpf
                 _signalTimer.Tick -= SignalTimer_Tick;
                 _signalTimer = null;
             }
-
-
 
             if (_aircraftTimer != null)
             {
@@ -939,6 +936,8 @@ namespace SciFiConsoleWpf
             Canvas.SetLeft(RadarTargetDot, tx - RadarTargetDot.Width / 2);
             Canvas.SetTop(RadarTargetDot, ty - RadarTargetDot.Height / 2);
 
+            RadarTargetDot.Visibility = Visibility.Hidden;
+
             // 레이더 타이머 (50ms = 20fps 정도)
             _radarTimer = new DispatcherTimer();
             _radarTimer.Interval = TimeSpan.FromMilliseconds(50);
@@ -985,11 +984,13 @@ namespace SciFiConsoleWpf
             double diff = Math.Abs(_radarAngle - targetDeg);
             if (diff > 180) diff = 360 - diff; // 0/360 기준 보정
 
-            double tolerance = 3.0;  // 몇 도 안에 들어오면 찾은 걸로 볼지
+            double tolerance = 10.0;  // 몇 도 안에 들어오면 찾은 걸로 볼지
 
-            if (!_radarDetectedThisTurn && diff < tolerance)
+            if (diff < tolerance)
             {
                 _radarDetectedThisTurn = true;
+                
+                RadarTargetDot.Visibility = Visibility.Visible; 
 
                 AddLogEntry($"RADAR TARGET DETECTED AT {targetDeg:0}°");
                 
@@ -998,6 +999,10 @@ namespace SciFiConsoleWpf
                 //    "RADAR",
                 //    MessageBoxButton.OK,
                 //    MessageBoxImage.Information);
+            }
+            else
+            {
+                RadarTargetDot.Visibility = Visibility.Hidden;
             }
         }
 
@@ -1014,7 +1019,17 @@ namespace SciFiConsoleWpf
                 _radarTimer.Stop();
         }
 
+        private void StartAircraft()
+        {
+            if (_aircraftTimer != null && !_aircraftTimer.IsEnabled)
+                _aircraftTimer.Start();
+        }
 
+        private void StopAircraft()
+        {
+            if (_aircraftTimer != null && _aircraftTimer.IsEnabled)
+                _aircraftTimer.Stop();
+        }
 
 
         //private void StartDataStream()
@@ -1550,6 +1565,7 @@ namespace SciFiConsoleWpf
             ShowLayer(LayerAnimation);
             
             StartRadar();
+            StartAircraft();
 
             // Data Stream도 같이 시작
             //StartDataStream();
@@ -1562,6 +1578,7 @@ namespace SciFiConsoleWpf
             ShowLayer(LayerMap);
 
             StopRadar();
+            StopAircraft();
             //StopDataStream();
 
             if (!mapInitialized)
@@ -1580,12 +1597,16 @@ namespace SciFiConsoleWpf
             VideoSourcePanel.Visibility = Visibility.Visible;
 
             StopRadar();
+            StopAircraft();
             //StopDataStream();
 
             if (!videoInitialized)
             {
-                InitVideo();
-                videoInitialized = true;
+                Task.Run(() =>
+                {
+                    InitVideo();
+                    videoInitialized = true;
+                });
             }
         }
 

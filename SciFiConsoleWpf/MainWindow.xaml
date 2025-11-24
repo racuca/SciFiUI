@@ -532,7 +532,7 @@
                         </Canvas>
 
                         <!-- 텍스트 -->
-                        <TextBlock Text="RADAR SWEEP"
+                        <TextBlock Text="RADAR"
                            Foreground="{StaticResource TextPrimary}"
                            FontSize="12"
                            HorizontalAlignment="Center"
