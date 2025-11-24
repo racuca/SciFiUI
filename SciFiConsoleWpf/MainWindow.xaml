@@ -159,640 +159,674 @@
                          BeginTime="0:0:0.18" />
         </Storyboard>
     </Window.Resources>
-    <Grid Background="{StaticResource BgMain}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="40"/>
-            <!-- Top bar -->
-            <RowDefinition Height="*"/>
-            <!-- Main area -->
-            <RowDefinition Height="46"/>
-            <!-- Bottom bar -->
-        </Grid.RowDefinitions>
+    <Grid x:Name="RootLayout">
+        <Grid Background="{StaticResource BgMain}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>
+                <!-- Top bar -->
+                <RowDefinition Height="*"/>
+                <!-- Main area -->
+                <RowDefinition Height="46"/>
+                <!-- Bottom bar -->
+            </Grid.RowDefinitions>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="3*"/>
-            <!-- Left panel -->
-            <ColumnDefinition Width="5*"/>
-            <!-- Center map -->
-            <ColumnDefinition Width="3*"/>
-            <!-- Right panel -->
-        </Grid.ColumnDefinitions>
-
-        <!-- ========== 상단 상태바 ========== -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="8,4,8,4">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="3*"/>
+                <!-- Left panel -->
+                <ColumnDefinition Width="5*"/>
+                <!-- Center map -->
+                <ColumnDefinition Width="3*"/>
+                <!-- Right panel -->
             </Grid.ColumnDefinitions>
 
-            <!-- 좌측: 시스템 이름 -->
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="OPLINK CONTROL / SECTOR-07"
-                           Foreground="{StaticResource TextPrimary}"
-                           FontSize="14"
-                           FontWeight="Bold"/>
-                <TextBlock Text="   |   STATUS: ONLINE"
-                           Foreground="{StaticResource TextSecondary}"
-                           FontSize="11"
-                           Margin="8,2,0,0"/>
-            </StackPanel>
+            <!-- ========== 상단 상태바 ========== -->
+            <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="8,4,8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- 우측: 시간 / 경고 아이콘 자리 -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <TextBlock Text="WARN"
-                           Foreground="{StaticResource AccentWarn}"
-                           FontSize="11"
-                           Margin="0,0,10,0"/>
-                <Rectangle Width="16" Height="16" Stroke="#00E4FF" StrokeThickness="1" Margin="0,0,6,0"/>
-                <Rectangle Width="16" Height="16" Stroke="#00E4FF" StrokeThickness="1" Margin="0,0,10,0"/>
-
-                <TextBlock x:Name="txtClock"
-                           Text="21:32:05"
-                           Foreground="{StaticResource TextPrimary}"
-                           FontSize="13"
-                           FontWeight="SemiBold"/>
-            </StackPanel>
-        </Grid>
-
-        <!-- ========== 좌측 패널 ========== -->
-        <Grid Grid.Row="1" Grid.Column="0" Margin="8,0,4,0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <!-- POWER SYSTEM -->
-                <RowDefinition Height="Auto"/>
-                <!-- SIGNAL ANALYTICS -->
-                <RowDefinition Height="Auto"/>
-                <!-- SIGNAL ANALYTICS -->
-                <RowDefinition Height="*"/>
-                <!-- EVENT LOG: 남는 공간 전부 차지 -->
-            </Grid.RowDefinitions>
-            <!-- 모듈 1: POWER SYSTEM -->
-            <Border Grid.Row="0" Style="{StaticResource ModulePanel}" Height="170">
-                <StackPanel Name="CPURAMPanel">
-                    <TextBlock Text="POWER SYSTEM"
-                   Foreground="{StaticResource TextPrimary}"
-                   FontSize="11" FontWeight="Bold"
-                   Margin="0,0,0,4"/>
-
-                    <!-- CPU CORE 0 -->
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 0" />
-                    <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                        <Rectangle x:Name="Cpu0Bar"
-                       Height="8"
-                       VerticalAlignment="Bottom"
-                       Fill="#18E4FF">
-                            <Rectangle.RenderTransform>
-                                <ScaleTransform x:Name="Cpu0Scale"
-                                    ScaleX="0.1" ScaleY="1"
-                                    CenterX="0" CenterY="0.5"/>
-                            </Rectangle.RenderTransform>
-                        </Rectangle>
-                    </Grid>
-
-                    <!-- CPU CORE 1 -->
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 1" />
-                    <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                        <Rectangle x:Name="Cpu1Bar"
-                       Height="8"
-                       VerticalAlignment="Bottom"
-                       Fill="#3CFF9C">
-                            <Rectangle.RenderTransform>
-                                <ScaleTransform x:Name="Cpu1Scale"
-                                    ScaleX="0.1" ScaleY="1"
-                                    CenterX="0" CenterY="0.5"/>
-                            </Rectangle.RenderTransform>
-                        </Rectangle>
-                    </Grid>
-
-                    <!-- RAM -->
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="RAM" />
-                    <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                        <Rectangle x:Name="RamBar"
-                       Height="8"
-                       VerticalAlignment="Bottom"
-                       Fill="#1F6FFF">
-                            <Rectangle.RenderTransform>
-                                <ScaleTransform x:Name="RamScale"
-                                    ScaleX="0.1" ScaleY="1"
-                                    CenterX="0" CenterY="0.5"/>
-                            </Rectangle.RenderTransform>
-                        </Rectangle>
-                    </Grid>
-
-                    <!-- GPU (일단 CPU 기반/가상 값, 나중에 진짜 GPU 카운터로 교체 가능) -->
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="GPU" />
-                    <Grid Height="8" Background="#050A12">
-                        <Rectangle x:Name="GpuBar"
-                       Height="8"
-                       VerticalAlignment="Bottom"
-                       Fill="#FF6B6B">
-                            <Rectangle.RenderTransform>
-                                <ScaleTransform x:Name="GpuScale"
-                                    ScaleX="0.1" ScaleY="1"
-                                    CenterX="0" CenterY="0.5"/>
-                            </Rectangle.RenderTransform>
-                        </Rectangle>
-                    </Grid>
-
+                <!-- 좌측: 시스템 이름 -->
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="OPLINK CONTROL / SECTOR-07"
+                               Foreground="{StaticResource TextPrimary}"
+                               FontSize="14"
+                               FontWeight="Bold"/>
+                    <TextBlock Text="   |   STATUS: ONLINE"
+                               Foreground="{StaticResource TextSecondary}"
+                               FontSize="11"
+                               Margin="8,2,0,0"/>
                 </StackPanel>
-            </Border>
-            <!-- 모듈 2: 작은 그래프 자리 (비어있어도 됨) -->
-            <Border Grid.Row="1" Style="{StaticResource ModulePanel}" Height="190">
-                <Grid Margin="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
 
-                    <!-- 제목 -->
-                    <TextBlock Grid.Row="0"
-                   Text="SIGNAL ANALYTICS"
-                   Foreground="{StaticResource TextPrimary}"
-                   FontSize="11"
-                   FontWeight="Bold"
-                   Margin="0,0,0,4"/>
+                <!-- 우측: 시간 / 경고 아이콘 자리 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="WARN"
+                               Foreground="{StaticResource AccentWarn}"
+                               FontSize="11"
+                               Margin="0,0,10,0"/>
+                    <Rectangle Width="16" Height="16" Stroke="#00E4FF" StrokeThickness="1" Margin="0,0,6,0"/>
+                    <Rectangle Width="16" Height="16" Stroke="#00E4FF" StrokeThickness="1" Margin="0,0,10,0"/>
 
-                    <!-- UPLINK / DOWNLINK 바 -->
-                    <StackPanel Grid.Row="1" Margin="0,0,0,4">
-                        <TextBlock Style="{StaticResource TinyLabel}" Text="UPLINK QUALITY" />
+                    <TextBlock x:Name="txtClock"
+                               Text="21:32:05"
+                               Foreground="{StaticResource TextPrimary}"
+                               FontSize="13"
+                               FontWeight="SemiBold"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ========== 좌측 패널 ========== -->
+            <Grid Grid.Row="1" Grid.Column="0" Margin="8,0,4,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- POWER SYSTEM -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- SIGNAL ANALYTICS -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- SIGNAL ANALYTICS -->
+                    <RowDefinition Height="*"/>
+                    <!-- EVENT LOG: 남는 공간 전부 차지 -->
+                </Grid.RowDefinitions>
+                <!-- 모듈 1: POWER SYSTEM -->
+                <Border Grid.Row="0" Style="{StaticResource ModulePanel}" Height="170">
+                    <StackPanel Name="CPURAMPanel">
+                        <TextBlock Text="POWER SYSTEM"
+                       Foreground="{StaticResource TextPrimary}"
+                       FontSize="11" FontWeight="Bold"
+                       Margin="0,0,0,4"/>
+
+                        <!-- CPU CORE 0 -->
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 0" />
                         <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                            <Rectangle x:Name="SigUplinkBar"
+                            <Rectangle x:Name="Cpu0Bar"
                            Height="8"
                            VerticalAlignment="Bottom"
                            Fill="#18E4FF">
                                 <Rectangle.RenderTransform>
-                                    <ScaleTransform x:Name="SigUplinkScale"
+                                    <ScaleTransform x:Name="Cpu0Scale"
                                         ScaleX="0.1" ScaleY="1"
                                         CenterX="0" CenterY="0.5"/>
                                 </Rectangle.RenderTransform>
                             </Rectangle>
                         </Grid>
-                        <TextBlock x:Name="SigUplinkText"
-                       Style="{StaticResource TinyLabel}"
-                       Text="UL: 0%" />
 
-                        <TextBlock Style="{StaticResource TinyLabel}" Text="DOWNLINK QUALITY" Margin="0,6,0,0"/>
+                        <!-- CPU CORE 1 -->
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 1" />
                         <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                            <Rectangle x:Name="SigDownlinkBar"
+                            <Rectangle x:Name="Cpu1Bar"
                            Height="8"
                            VerticalAlignment="Bottom"
                            Fill="#3CFF9C">
                                 <Rectangle.RenderTransform>
-                                    <ScaleTransform x:Name="SigDownlinkScale"
+                                    <ScaleTransform x:Name="Cpu1Scale"
                                         ScaleX="0.1" ScaleY="1"
                                         CenterX="0" CenterY="0.5"/>
                                 </Rectangle.RenderTransform>
                             </Rectangle>
                         </Grid>
-                        <TextBlock x:Name="SigDownlinkText"
-                       Style="{StaticResource TinyLabel}"
-                       Text="DL: 0%" />
-                    </StackPanel>
 
-                    <!-- PKT LOSS / LATENCY -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,4">
-                        <StackPanel Width="110">
-                            <TextBlock Style="{StaticResource TinyLabel}" Text="PKT LOSS" />
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse x:Name="PktLossIndicator"
-                             Width="6" Height="6"
-                             Margin="0,2,4,0"
-                             Fill="#18E4FF"/>
-                                <TextBlock x:Name="PktLossText"
-                               Style="{StaticResource TinyLabel}"
-                               Text="0.0 %" />
+                        <!-- RAM -->
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="RAM" />
+                        <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                            <Rectangle x:Name="RamBar"
+                           Height="8"
+                           VerticalAlignment="Bottom"
+                           Fill="#1F6FFF">
+                                <Rectangle.RenderTransform>
+                                    <ScaleTransform x:Name="RamScale"
+                                        ScaleX="0.1" ScaleY="1"
+                                        CenterX="0" CenterY="0.5"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+                        </Grid>
+
+                        <!-- GPU (일단 CPU 기반/가상 값, 나중에 진짜 GPU 카운터로 교체 가능) -->
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="GPU" />
+                        <Grid Height="8" Background="#050A12">
+                            <Rectangle x:Name="GpuBar"
+                           Height="8"
+                           VerticalAlignment="Bottom"
+                           Fill="#FF6B6B">
+                                <Rectangle.RenderTransform>
+                                    <ScaleTransform x:Name="GpuScale"
+                                        ScaleX="0.1" ScaleY="1"
+                                        CenterX="0" CenterY="0.5"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+                        </Grid>
+
+                    </StackPanel>
+                </Border>
+                <!-- 모듈 2: 작은 그래프 자리 (비어있어도 됨) -->
+                <Border Grid.Row="1" Style="{StaticResource ModulePanel}" Height="190">
+                    <Grid Margin="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 제목 -->
+                        <TextBlock Grid.Row="0"
+                       Text="SIGNAL ANALYTICS"
+                       Foreground="{StaticResource TextPrimary}"
+                       FontSize="11"
+                       FontWeight="Bold"
+                       Margin="0,0,0,4"/>
+
+                        <!-- UPLINK / DOWNLINK 바 -->
+                        <StackPanel Grid.Row="1" Margin="0,0,0,4">
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="UPLINK QUALITY" />
+                            <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                                <Rectangle x:Name="SigUplinkBar"
+                               Height="8"
+                               VerticalAlignment="Bottom"
+                               Fill="#18E4FF">
+                                    <Rectangle.RenderTransform>
+                                        <ScaleTransform x:Name="SigUplinkScale"
+                                            ScaleX="0.1" ScaleY="1"
+                                            CenterX="0" CenterY="0.5"/>
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
+                            <TextBlock x:Name="SigUplinkText"
+                           Style="{StaticResource TinyLabel}"
+                           Text="UL: 0%" />
+
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="DOWNLINK QUALITY" Margin="0,6,0,0"/>
+                            <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                                <Rectangle x:Name="SigDownlinkBar"
+                               Height="8"
+                               VerticalAlignment="Bottom"
+                               Fill="#3CFF9C">
+                                    <Rectangle.RenderTransform>
+                                        <ScaleTransform x:Name="SigDownlinkScale"
+                                            ScaleX="0.1" ScaleY="1"
+                                            CenterX="0" CenterY="0.5"/>
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
+                            <TextBlock x:Name="SigDownlinkText"
+                           Style="{StaticResource TinyLabel}"
+                           Text="DL: 0%" />
+                        </StackPanel>
+
+                        <!-- PKT LOSS / LATENCY -->
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,4">
+                            <StackPanel Width="110">
+                                <TextBlock Style="{StaticResource TinyLabel}" Text="PKT LOSS" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="PktLossIndicator"
+                                 Width="6" Height="6"
+                                 Margin="0,2,4,0"
+                                 Fill="#18E4FF"/>
+                                    <TextBlock x:Name="PktLossText"
+                                   Style="{StaticResource TinyLabel}"
+                                   Text="0.0 %" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource TinyLabel}" Text="LATENCY" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="LatencyIndicator"
+                                 Width="6" Height="6"
+                                 Margin="0,2,4,0"
+                                 Fill="#18E4FF"/>
+                                    <TextBlock x:Name="LatencyText"
+                                   Style="{StaticResource TinyLabel}"
+                                   Text="0 ms" />
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
 
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource TinyLabel}" Text="LATENCY" />
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse x:Name="LatencyIndicator"
-                             Width="6" Height="6"
-                             Margin="0,2,4,0"
-                             Fill="#18E4FF"/>
-                                <TextBlock x:Name="LatencyText"
-                               Style="{StaticResource TinyLabel}"
-                               Text="0 ms" />
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
+                        <!-- 웨이브폼 그래프 -->
+                        <Grid x:Name="SignalWaveHost"
+                              Grid.Row="3"
+                              Margin="0,4,0,0"
+                              Background="#050A12">
+                            <Canvas>
+                                <!-- 세로 그리드 라인 몇 개 -->
+                                <Line X1="0"   Y1="0" X2="0"   Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                          Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="40"  Y1="0" X2="40"  Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                          Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="80"  Y1="0" X2="80"  Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                          Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="120" Y1="0" X2="120" Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                          Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="160" Y1="0" X2="160" Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
+                          Stroke="#101822" StrokeThickness="1"/>
+                            </Canvas>
 
-                    <!-- 웨이브폼 그래프 -->
-                    <Grid x:Name="SignalWaveHost"
-                          Grid.Row="3"
+                            <Polyline x:Name="SignalWave"
+                          Stroke="#18E4FF"
+                          StrokeThickness="1.3"
+                          Points="0,0 10,0"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+                <!-- 모듈 4번째 Row: 3겹 영역 그래프 -->
+                <Border Grid.Row="2" Style="{StaticResource ModulePanel}" Height="190">
+                    <Grid Margin="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 제목 -->
+                        <TextBlock Grid.Row="0"
+                           Text="Three Axis Chart"
+                           Foreground="{StaticResource TextPrimary}"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Margin="0,0,0,4"/>
+
+                        <Grid x:Name="SignalChartHost"
+                          Grid.Row="1"
                           Margin="0,4,0,0"
                           Background="#050A12">
-                        <Canvas>
-                            <!-- 세로 그리드 라인 몇 개 -->
-                            <Line X1="0"   Y1="0" X2="0"   Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
-                      Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="40"  Y1="0" X2="40"  Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
-                      Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="80"  Y1="0" X2="80"  Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
-                      Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="120" Y1="0" X2="120" Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
-                      Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="160" Y1="0" X2="160" Y2="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Grid}}"
-                      Stroke="#101822" StrokeThickness="1"/>
-                        </Canvas>
+                            <Canvas x:Name="SignalChartCanvas">
+                                <!-- 세로 그리드 라인 -->
+                                <Line X1="0"   Y1="0" X2="0"   Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="40"  Y1="0" X2="40"  Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="80"  Y1="0" X2="80"  Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="120" Y1="0" X2="120" Y2="100" Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="160" Y1="0" X2="160" Y2="100" Stroke="#101822" StrokeThickness="1"/>
 
-                        <Polyline x:Name="SignalWave"
-                      Stroke="#18E4FF"
-                      StrokeThickness="1.3"
-                      Points="0,0 10,0"/>
+                                <!-- 가로 그리드 라인 -->
+                                <Line X1="0"   Y1="25" X2="200" Y2="25" Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="0"   Y1="50" X2="200" Y2="50" Stroke="#101822" StrokeThickness="1"/>
+                                <Line X1="0"   Y1="75" X2="200" Y2="75" Stroke="#101822" StrokeThickness="1"/>
+                            </Canvas>
+
+                            <!-- 영역 3개 (뒤에서 앞으로) -->
+                            <Polygon x:Name="SigArea3" Fill="#2218E4FF" StrokeThickness="0"/>
+                            <Polygon x:Name="SigArea2" Fill="#331F6FFF" StrokeThickness="0"/>
+                            <Polygon x:Name="SigArea1" Fill="#6618E4FF" StrokeThickness="0"/>
+
+                            <!-- 좌측 상단 레이블 -->
+                            <StackPanel Orientation="Vertical"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="4,2,0,0">
+                                <TextBlock Text="DATA 01"
+                                Foreground="{StaticResource TextSecondary}"
+                                FontSize="9"/>
+                                <TextBlock Text="DATA 02"
+                                Foreground="{StaticResource TextSecondary}"
+                                FontSize="9"/>
+                                <TextBlock Text="DATA 03"
+                                Foreground="{StaticResource TextSecondary}"
+                                FontSize="9"/>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
-                </Grid>
-            </Border>
-            <!-- 모듈 4번째 Row: 3겹 영역 그래프 -->
-            <Border Grid.Row="2" Style="{StaticResource ModulePanel}" Height="190">
-                <Grid Margin="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- 제목 -->
-                    <TextBlock Grid.Row="0"
-                       Text="Three Axis Chart"
+                </Border>
+                <!-- 모듈 3: 로그 창 -->
+                <Border Grid.Row="3" Style="{StaticResource ModulePanel}" 
+                        VerticalAlignment="Stretch">
+                    <StackPanel>
+                        <TextBlock Text="EVENT LOG"
                        Foreground="{StaticResource TextPrimary}"
-                       FontSize="11"
-                       FontWeight="Bold"
-                       Margin="0,0,0,4"/>
+                       FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <ListBox x:Name="EventLogList"
+                     Background="Transparent"
+                     BorderThickness="0" 
+                     Foreground="{StaticResource TextSecondary}"
+                     FontSize="10">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+            </Grid>
 
-                    <Grid x:Name="SignalChartHost"
-                      Grid.Row="1"
-                      Margin="0,4,0,0"
-                      Background="#050A12">
-                        <Canvas x:Name="SignalChartCanvas">
-                            <!-- 세로 그리드 라인 -->
-                            <Line X1="0"   Y1="0" X2="0"   Y2="100" Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="40"  Y1="0" X2="40"  Y2="100" Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="80"  Y1="0" X2="80"  Y2="100" Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="120" Y1="0" X2="120" Y2="100" Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="160" Y1="0" X2="160" Y2="100" Stroke="#101822" StrokeThickness="1"/>
+            <!-- ========== 중앙 패널 (지도/메인 화면) ========== -->
+            <Border Grid.Row="1" Grid.Column="1" Margin="4,0,4,0"
+                    Style="{StaticResource ModulePanel}">
+                <Grid x:Name="CentralPanelRoot">
+                    <!-- ========== Layer 0 : Default SF Animation Screen ========== -->
+                    <Grid x:Name="LayerAnimation">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid HorizontalAlignment="Center" Grid.Row="0"
+                          VerticalAlignment="Center"
+                          Width="260" Height="260">
 
-                            <!-- 가로 그리드 라인 -->
-                            <Line X1="0"   Y1="25" X2="200" Y2="25" Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="0"   Y1="50" X2="200" Y2="50" Stroke="#101822" StrokeThickness="1"/>
-                            <Line X1="0"   Y1="75" X2="200" Y2="75" Stroke="#101822" StrokeThickness="1"/>
+                            <!-- 컨센트릭 레이더 원들 -->
+                            <Ellipse Stroke="#2233AA" StrokeThickness="1"/>
+                            <Ellipse Margin="20" Stroke="#3355FF" StrokeThickness="1"/>
+                            <Ellipse Margin="40" Stroke="#4477FF" StrokeThickness="1"/>
+                            <Ellipse Margin="60" Stroke="#66AAFF" StrokeThickness="1"/>
+
+                            <!-- 십자 격자선 -->
+                            <Line X1="0" Y1="130" X2="260" Y2="130"
+                              Stroke="#335577" StrokeThickness="1" />
+                            <Line X1="130" Y1="0" X2="130" Y2="260"
+                              Stroke="#335577" StrokeThickness="1" />
+
+                            <!-- 대각선 격자선 (옵션) -->
+                            <Line X1="0" Y1="0" X2="260" Y2="260"
+                              Stroke="#223344" StrokeThickness="0.7" />
+                            <Line X1="260" Y1="0" X2="0" Y2="260"
+                              Stroke="#223344" StrokeThickness="0.7" />
+
+                            <!-- 레이더 스윕 라인 -->
+                            <Canvas x:Name="RadarCanvas">
+                                <!-- 중심 기준으로 위쪽으로 뻗는 선 하나 -->
+                                <Line x:Name="RadarSweepLine"
+                                    X1="130" Y1="130"
+                                    X2="130" Y2="10"
+                                    Stroke="#00FF88"
+                                    StrokeThickness="2">
+                                    <Line.RenderTransform>
+                                        <RotateTransform x:Name="RadarSweepRotate"
+                                         CenterX="130" CenterY="130"
+                                         Angle="0"/>
+                                    </Line.RenderTransform>
+                                </Line>
+
+                                <!-- 타겟 점 (예시: 오른쪽 위에 하나) -->
+                                <Ellipse x:Name="RadarTargetDot"
+                                     Width="8" Height="8"
+                                     Fill="#FF4D4D"
+                                     Stroke="White" StrokeThickness="1"/>
+                            </Canvas>
+
+                            <!-- 텍스트 -->
+                            <TextBlock Text="RADAR"
+                               Foreground="{StaticResource TextPrimary}"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Bottom"
+                               Margin="0,0,0,10"/>
+                        </Grid>
+                        <Canvas x:Name="AircraftCanvas"
+                                 Grid.Row="1"
+                                 Width="320"
+                                 Height="240"
+                                 HorizontalAlignment="Center"
+                                 Margin="0,10,0,0">
+                            <TextBlock Text="AIRFRAME ORIENTATION"
+                       Foreground="{StaticResource TextSecondary}"
+                       FontSize="10"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Top"
+                       Margin="4,0,0,0" />
                         </Canvas>
+                        <!-- 🔽 아래쪽 Data Stream 패널 (껍데기만)
+                        <Grid x:Name="DataStreamPanel"
+                              Width="420"
+                              Height="120"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Bottom"
+                              Margin="0,0,0,30">
+                            <Border CornerRadius="6"
+                                Background="#091018"
+                                BorderBrush="#1C3A55"
+                                BorderThickness="1">
+                                <Grid Margin="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
 
-                        <!-- 영역 3개 (뒤에서 앞으로) -->
-                        <Polygon x:Name="SigArea3" Fill="#2218E4FF" StrokeThickness="0"/>
-                        <Polygon x:Name="SigArea2" Fill="#331F6FFF" StrokeThickness="0"/>
-                        <Polygon x:Name="SigArea1" Fill="#6618E4FF" StrokeThickness="0"/>
+                                    <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
+                                        <TextBlock Text="DATA STREAM ANALYZER"
+                                           Foreground="{StaticResource TextPrimary}"
+                                           FontSize="11"
+                                           FontWeight="Bold" />
+                                        <TextBlock Text="   |   UPLINK: 2.4GHz   DOWNLINK: 5.8GHz"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           FontSize="9"
+                                           Margin="8,0,0,0" />
+                                    </StackPanel>
 
-                        <!-- 좌측 상단 레이블 -->
-                        <StackPanel Orientation="Vertical"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Top"
-                        Margin="4,2,0,0">
-                            <TextBlock Text="DATA 01"
-                            Foreground="{StaticResource TextSecondary}"
-                            FontSize="9"/>
-                            <TextBlock Text="DATA 02"
-                            Foreground="{StaticResource TextSecondary}"
-                            FontSize="9"/>
-                            <TextBlock Text="DATA 03"
-                            Foreground="{StaticResource TextSecondary}"
-                            FontSize="9"/>
-                        </StackPanel>
+                                    <Grid x:Name="DataStreamBarsHost" Grid.Row="1" 
+                                          Margin="0,4,0,0"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalAlignment="Stretch"
+                                          Background="#112233"
+                                          />
+                                </Grid>
+                            </Border>
+                        </Grid>-->
                     </Grid>
-                </Grid>
-            </Border>
-            <!-- 모듈 3: 로그 창 -->
-            <Border Grid.Row="3" Style="{StaticResource ModulePanel}" 
-                    VerticalAlignment="Stretch">
-                <StackPanel>
-                    <TextBlock Text="EVENT LOG"
-                   Foreground="{StaticResource TextPrimary}"
-                   FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
-                    <ListBox x:Name="EventLogList"
-                 Background="Transparent"
-                 BorderThickness="0" 
-                 Foreground="{StaticResource TextSecondary}"
-                 FontSize="10">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="Margin" Value="0"/>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                    </ListBox>
-                </StackPanel>
-            </Border>
-        </Grid>
 
-        <!-- ========== 중앙 패널 (지도/메인 화면) ========== -->
-        <Border Grid.Row="1" Grid.Column="1" Margin="4,0,4,0"
-                Style="{StaticResource ModulePanel}">
-            <Grid x:Name="CentralPanelRoot">
-                <!-- ========== Layer 0 : Default SF Animation Screen ========== -->
-                <Grid x:Name="LayerAnimation">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Grid HorizontalAlignment="Center" Grid.Row="0"
-                      VerticalAlignment="Center"
-                      Width="260" Height="260">
+                    <!-- ========== Layer 1 : MAP ========== -->
+                    <Grid x:Name="LayerMap" Visibility="Collapsed">
+                        <gmap:GMapControl x:Name="MapControl"
+                                  MinZoom="3"
+                                  MaxZoom="19"
+                                  Zoom="12"
+                                  MouseWheelZoomEnabled="True"
+                                  MouseWheelZoomType="MousePositionWithoutCenter"
+                                  CanDragMap="True" />
 
-                        <!-- 컨센트릭 레이더 원들 -->
-                        <Ellipse Stroke="#2233AA" StrokeThickness="1"/>
-                        <Ellipse Margin="20" Stroke="#3355FF" StrokeThickness="1"/>
-                        <Ellipse Margin="40" Stroke="#4477FF" StrokeThickness="1"/>
-                        <Ellipse Margin="60" Stroke="#66AAFF" StrokeThickness="1"/>
+                        <Canvas x:Name="HudOverlay" IsHitTestVisible="True"/>
 
-                        <!-- 십자 격자선 -->
-                        <Line X1="0" Y1="130" X2="260" Y2="130"
-                          Stroke="#335577" StrokeThickness="1" />
-                        <Line X1="130" Y1="0" X2="130" Y2="260"
-                          Stroke="#335577" StrokeThickness="1" />
 
-                        <!-- 대각선 격자선 (옵션) -->
-                        <Line X1="0" Y1="0" X2="260" Y2="260"
-                          Stroke="#223344" StrokeThickness="0.7" />
-                        <Line X1="260" Y1="0" X2="0" Y2="260"
-                          Stroke="#223344" StrokeThickness="0.7" />
-
-                        <!-- 레이더 스윕 라인 -->
-                        <Canvas x:Name="RadarCanvas">
-                            <!-- 중심 기준으로 위쪽으로 뻗는 선 하나 -->
-                            <Line x:Name="RadarSweepLine"
-                                X1="130" Y1="130"
-                                X2="130" Y2="10"
-                                Stroke="#00FF88"
-                                StrokeThickness="2">
-                                <Line.RenderTransform>
-                                    <RotateTransform x:Name="RadarSweepRotate"
-                                     CenterX="130" CenterY="130"
-                                     Angle="0"/>
-                                </Line.RenderTransform>
-                            </Line>
-
-                            <!-- 타겟 점 (예시: 오른쪽 위에 하나) -->
-                            <Ellipse x:Name="RadarTargetDot"
-                                 Width="8" Height="8"
-                                 Fill="#FF4D4D"
-                                 Stroke="White" StrokeThickness="1"/>
-                        </Canvas>
-
-                        <!-- 텍스트 -->
-                        <TextBlock Text="RADAR"
-                           Foreground="{StaticResource TextPrimary}"
-                           FontSize="12"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Bottom"
-                           Margin="0,0,0,10"/>
                     </Grid>
-                    <Canvas x:Name="AircraftCanvas"
-                             Grid.Row="1"
-                             Width="320"
-                             Height="240"
-                             HorizontalAlignment="Center"
-                             Margin="0,10,0,0">
-                        <TextBlock Text="AIRFRAME ORIENTATION"
-                   Foreground="{StaticResource TextSecondary}"
-                   FontSize="10"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Top"
-                   Margin="4,0,0,0" />
-                    </Canvas>
-                    <!-- 🔽 아래쪽 Data Stream 패널 (껍데기만)
-                    <Grid x:Name="DataStreamPanel"
-                          Width="420"
-                          Height="120"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Bottom"
-                          Margin="0,0,0,30">
-                        <Border CornerRadius="6"
-                            Background="#091018"
-                            BorderBrush="#1C3A55"
-                            BorderThickness="1">
-                            <Grid Margin="8">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
 
-                                <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
-                                    <TextBlock Text="DATA STREAM ANALYZER"
-                                       Foreground="{StaticResource TextPrimary}"
-                                       FontSize="11"
-                                       FontWeight="Bold" />
-                                    <TextBlock Text="   |   UPLINK: 2.4GHz   DOWNLINK: 5.8GHz"
-                                       Foreground="{StaticResource TextSecondary}"
-                                       FontSize="9"
-                                       Margin="8,0,0,0" />
-                                </StackPanel>
+                    <Canvas x:Name="TargetPulseCanvas"
+                        IsHitTestVisible="False"
+                        Panel.ZIndex="1000"/>
+                    <!-- ========== Layer 2 : VIDEO ========== -->
+                    <Grid x:Name="LayerVideo" Visibility="Collapsed">
+                        <Border BorderBrush="#00E4FF" BorderThickness="1" Margin="4">
+                            <Grid>
+                                <!-- 네트워크 스트림용 VLC -->
+                                <vlc:VideoView x:Name="VideoViewControl"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch" />
 
-                                <Grid x:Name="DataStreamBarsHost" Grid.Row="1" 
-                                      Margin="0,4,0,0"
-                                      VerticalAlignment="Stretch"
-                                      HorizontalAlignment="Stretch"
-                                      Background="#112233"
-                                      />
+                                <!-- 로컬 카메라용 Image -->
+                                <Image x:Name="CameraImage"
+                                   Stretch="Uniform"
+                                   Visibility="Collapsed" />
                             </Grid>
                         </Border>
-                    </Grid>-->
-                </Grid>
+                    </Grid>
 
-                <!-- ========== Layer 1 : MAP ========== -->
-                <Grid x:Name="LayerMap" Visibility="Collapsed">
-                    <gmap:GMapControl x:Name="MapControl"
-                              MinZoom="3"
-                              MaxZoom="19"
-                              Zoom="12"
-                              MouseWheelZoomEnabled="True"
-                              MouseWheelZoomType="MousePositionWithoutCenter"
-                              CanDragMap="True" />
+                    <!-- ========== Overlay Buttons (Always shown) ========== -->
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Margin="0,0,0,0">
+                        <Button Content="RADAR" Click="btnShowAnim_Click"
+                        Style="{StaticResource SciFiButton}"
+                        Width="120"/>
+                        <Button Content="MAP" Click="btnShowMap_Click"
+                        Style="{StaticResource SciFiButton}"
+                        Width="80"/>
+                        <Button Content="VIDEO" Click="btnShowVideo_Click"
+                        Style="{StaticResource SciFiButton}"
+                        Width="80"/>
+                    </StackPanel>
 
-                    <Canvas x:Name="HudOverlay" IsHitTestVisible="True"/>
-
-
-                </Grid>
-
-
-                <!-- ========== Layer 2 : VIDEO ========== -->
-                <Grid x:Name="LayerVideo" Visibility="Collapsed">
-                    <Border BorderBrush="#00E4FF" BorderThickness="1" Margin="4">
-                        <Grid>
-                            <!-- 네트워크 스트림용 VLC -->
-                            <vlc:VideoView x:Name="VideoViewControl"
-                               HorizontalAlignment="Stretch"
-                               VerticalAlignment="Stretch" />
-
-                            <!-- 로컬 카메라용 Image -->
-                            <Image x:Name="CameraImage"
-                               Stretch="Uniform"
-                               Visibility="Collapsed" />
-                        </Grid>
-                    </Border>
-                </Grid>
-
-                <!-- ========== Overlay Buttons (Always shown) ========== -->
-                <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Top"
-                    Margin="0,0,0,0">
-                    <Button Content="RADAR" Click="btnShowAnim_Click"
-                    Style="{StaticResource SciFiButton}"
-                    Width="120"/>
-                    <Button Content="MAP" Click="btnShowMap_Click"
-                    Style="{StaticResource SciFiButton}"
-                    Width="80"/>
-                    <Button Content="VIDEO" Click="btnShowVideo_Click"
-                    Style="{StaticResource SciFiButton}"
-                    Width="80"/>
-                </StackPanel>
-
-                <!-- 좌상단 제목 -->
-                <TextBlock Text="TERRAIN / SECTOR-07"
-                   Foreground="{StaticResource TextPrimary}"
-                   FontSize="11"
-                   HorizontalAlignment="Left" VerticalAlignment="Top"
-                   Margin="6"/>
-
-                <!-- 우하단 좌표 표시 자리 -->
-                <TextBlock x:Name="txtTargetInfo"
-                   Text="TGT: --- , ---"
-                   Foreground="{StaticResource TextSecondary}"
-                   FontSize="10"
-                   HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                   Margin="0,0,6,4"/>
-                
-            </Grid>
-        </Border>
-
-        <!-- ========== 우측 패널 ========== -->
-        <StackPanel Grid.Row="1" Grid.Column="2" Margin="4,0,8,0">
-            <!-- 모듈 1: UAV 상태 -->
-            <Border Style="{StaticResource ModulePanel}" Height="170">
-                <StackPanel>
-                    <TextBlock Text="UAV STATUS"
-                               Foreground="{StaticResource TextPrimary}"
-                               FontSize="11" FontWeight="Bold"/>
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #01  READY" />
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #02  STANDBY" />
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #03  ACTIVE" />
-                </StackPanel>
-            </Border>
-
-            <!-- 모듈 2: 카메라 / 짐벌 -->
-            <Border Style="{StaticResource ModulePanel}" Height="170">
-                <StackPanel>
-                    <TextBlock Text="EO/IR GIMBAL"
-                               Foreground="{StaticResource TextPrimary}"
-                               FontSize="11" FontWeight="Bold"/>
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="PAN : +002.3°" />
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="TILT: -034.8°" />
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="FOV : 12.4°" />
-                </StackPanel>
-            </Border>
-
-            <!-- 모듈 3: 기타 -->
-            <Border Style="{StaticResource ModulePanel}" VerticalAlignment="Stretch">
-                <TextBlock Text="RESERVED PANEL"
-                           Foreground="{StaticResource TextSecondary}"
-                           FontSize="10"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
-            </Border>
-            <!-- ⭐ 새로 추가: COMMAND 버튼 패널 -->
-            <Border Style="{StaticResource ModulePanel}" Height="60">
-                <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-                    <Button x:Name="btnArm" Content="ARM"
-                    Width="70"
-                    Style="{StaticResource SciFiButton}"
-                    Click="btnArm_Click"/>
-                    <Button x:Name="btnDisarm" Content="DISARM"
-                    Width="80"
-                    Style="{StaticResource SciFiButton}"
-                    Click="btnDisarm_Click"/>
-                    <!--<Button x:Name="btnTrack" Content="TRACK"
-                    Width="80"
-                    Style="{StaticResource SciFiButton}"
-                    Click="btnTrack_Click"/>-->
-                </StackPanel>
-            </Border>
-            <!-- VIDEO 소스 선택 패널 -->
-            <Border x:Name="VideoSourcePanel"
-                    Style="{StaticResource ModulePanel}"
-                    Height="150"
-                    Visibility="Collapsed">
-                <StackPanel Margin="4">
-                    <TextBlock Text="VIDEO SOURCE"
+                    <!-- 좌상단 제목 -->
+                    <TextBlock Text="TERRAIN / SECTOR-07"
                        Foreground="{StaticResource TextPrimary}"
                        FontSize="11"
-                       FontWeight="Bold"
-                       Margin="0,0,0,4"/>
+                       HorizontalAlignment="Left" VerticalAlignment="Top"
+                       Margin="6"/>
 
-                    <!-- 카메라/URL 목록 -->
-                    <ComboBox x:Name="cmbVideoSource"
-                      SelectionChanged="cmbVideoSource_SelectionChanged"
-                      Margin="0,0,0,4"/>
-
-                    <!-- URL 입력 (Network Stream 선택 시 표시) -->
-                    <TextBox x:Name="txtStreamUrl"
-                         Visibility="Collapsed"
-                         Margin="0,0,0,4"
-                         FontSize="11"
-                         Text="rtsp://..." />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="btnConnectVideo"
-                            Content="CONNECT"
-                            Width="80"
-                            Style="{StaticResource SciFiButton}"
-                            Click="btnConnectVideo_Click"/>
-                        <Button x:Name="btnStopVideo"
-                        Content="STOP"
-                        Width="60"
-                        Margin="4,0,0,0"
-                        Style="{StaticResource SciFiButton}"
-                        Click="btnStopVideo_Click"/>
-                    </StackPanel>
-                </StackPanel>
+                    <!-- 우하단 좌표 표시 자리 -->
+                    <TextBlock x:Name="txtTargetInfo"
+                       Text="TGT: --- , ---"
+                       Foreground="{StaticResource TextSecondary}"
+                       FontSize="10"
+                       HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                       Margin="0,0,6,4"/>
+                
+                </Grid>
             </Border>
-        </StackPanel>
 
-        <!-- ========== 하단 바 ========== -->
-        <Border Grid.Row="2" Grid.ColumnSpan="3" Margin="8,4,8,8"
-                Background="#0C121E" BorderBrush="#1D2535"
-                BorderThickness="1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="3*"/>
-                    <ColumnDefinition Width="2*"/>
-                </Grid.ColumnDefinitions>
+            <!-- ========== 우측 패널 ========== -->
+            <StackPanel Grid.Row="1" Grid.Column="2" Margin="4,0,8,0">
+                <!-- 모듈 1: UAV 상태 -->
+                <Border Style="{StaticResource ModulePanel}" Height="170">
+                    <StackPanel>
+                        <TextBlock Text="UAV STATUS"
+                                   Foreground="{StaticResource TextPrimary}"
+                                   FontSize="11" FontWeight="Bold"/>
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #01  READY" />
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #02  STANDBY" />
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="UAV #03  ACTIVE" />
+                    </StackPanel>
+                </Border>
 
-                <!-- 좌측: 텔레메트리 -->
-                <StackPanel Orientation="Horizontal" Margin="8,4,0,0">
-                    <TextBlock x:Name="txtAlt" Style="{StaticResource TinyLabel}" Text="ALT: 0123m" />
-                    <TextBlock x:Name="txtSpd" Style="{StaticResource TinyLabel}" Text="   SPD: 045kt" />
-                    <TextBlock x:Name="txtHdg" Style="{StaticResource TinyLabel}" Text="   HDG: 273°" />
-                </StackPanel>
+                <!-- 모듈 2: 카메라 / 짐벌 -->
+                <Border Style="{StaticResource ModulePanel}" Height="170">
+                    <StackPanel>
+                        <TextBlock Text="EO/IR GIMBAL"
+                                   Foreground="{StaticResource TextPrimary}"
+                                   FontSize="11" FontWeight="Bold"/>
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="PAN : +002.3°" />
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="TILT: -034.8°" />
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="FOV : 12.4°" />
+                    </StackPanel>
+                </Border>
 
-                <!-- 중앙: 진행 상태 바 -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="MISSION 03   PROGRESS" />
-                    <ProgressBar x:Name="MissionProgress" Value="38" Maximum="100" Height="8" Width="260" Margin="6,0,0,0"/>
-                </StackPanel>
+                <!-- 모듈 3: 기타 -->
+                <Border Style="{StaticResource ModulePanel}" VerticalAlignment="Stretch">
+                    <TextBlock Text="RESERVED PANEL"
+                               Foreground="{StaticResource TextSecondary}"
+                               FontSize="10"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+                <!-- ⭐ 새로 추가: COMMAND 버튼 패널 -->
+                <Border Style="{StaticResource ModulePanel}" Height="60">
+                    <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                        <Button x:Name="btnArm" Content="ARM"
+                        Width="70"
+                        Style="{StaticResource SciFiButton}"
+                        Click="btnArm_Click"/>
+                        <Button x:Name="btnDisarm" Content="DISARM"
+                        Width="80"
+                        Style="{StaticResource SciFiButton}"
+                        Click="btnDisarm_Click"/>
+                        <!--<Button x:Name="btnTrack" Content="TRACK"
+                        Width="80"
+                        Style="{StaticResource SciFiButton}"
+                        Click="btnTrack_Click"/>-->
+                    </StackPanel>
+                </Border>
+                <!-- VIDEO 소스 선택 패널 -->
+                <Border x:Name="VideoSourcePanel"
+                        Style="{StaticResource ModulePanel}"
+                        Height="150"
+                        Visibility="Collapsed">
+                    <StackPanel Margin="4">
+                        <TextBlock Text="VIDEO SOURCE"
+                           Foreground="{StaticResource TextPrimary}"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           Margin="0,0,0,4"/>
 
-                <!-- 우측: 연결 정보 -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal"
-                            HorizontalAlignment="Right" Margin="0,4,8,0">
-                    <TextBlock Style="{StaticResource TinyLabel}" Text="LINK: UDP 14550 " />
-                    <Ellipse x:Name="LinkLed" Width="8" Height="8" Fill="#31FF72" Margin="4,0,0,0"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+                        <!-- 카메라/URL 목록 -->
+                        <ComboBox x:Name="cmbVideoSource"
+                          SelectionChanged="cmbVideoSource_SelectionChanged"
+                          Margin="0,0,0,4"/>
+
+                        <!-- URL 입력 (Network Stream 선택 시 표시) -->
+                        <TextBox x:Name="txtStreamUrl"
+                             Visibility="Collapsed"
+                             Margin="0,0,0,4"
+                             FontSize="11"
+                             Text="rtsp://..." />
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button x:Name="btnConnectVideo"
+                                Content="CONNECT"
+                                Width="80"
+                                Style="{StaticResource SciFiButton}"
+                                Click="btnConnectVideo_Click"/>
+                            <Button x:Name="btnStopVideo"
+                            Content="STOP"
+                            Width="60"
+                            Margin="4,0,0,0"
+                            Style="{StaticResource SciFiButton}"
+                            Click="btnStopVideo_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- ========== 하단 바 ========== -->
+            <Border Grid.Row="2" Grid.ColumnSpan="3" Margin="8,4,8,8"
+                    Background="#0C121E" BorderBrush="#1D2535"
+                    BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 좌측: 텔레메트리 -->
+                    <StackPanel Orientation="Horizontal" Margin="8,4,0,0">
+                        <TextBlock x:Name="txtAlt" Style="{StaticResource TinyLabel}" Text="ALT: 0123m" />
+                        <TextBlock x:Name="txtSpd" Style="{StaticResource TinyLabel}" Text="   SPD: 045kt" />
+                        <TextBlock x:Name="txtHdg" Style="{StaticResource TinyLabel}" Text="   HDG: 273°" />
+                    </StackPanel>
+
+                    <!-- 중앙: 진행 상태 바 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="MISSION 03   PROGRESS" />
+                        <ProgressBar x:Name="MissionProgress" Value="38" Maximum="100" Height="8" Width="260" Margin="6,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- 우측: 연결 정보 -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                HorizontalAlignment="Right" Margin="0,4,8,0">
+                        <TextBlock Style="{StaticResource TinyLabel}" Text="LINK: UDP 14550 " />
+                        <Ellipse x:Name="LinkLed" Width="8" Height="8" Fill="#31FF72" Margin="4,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+        <!-- HUD Overlay (Noise + Scanline) -->
+        <Grid IsHitTestVisible="False">
+            <!-- Noise Layer -->
+            <Grid.Background>
+                <ImageBrush ImageSource="Assets/hud_noise_fine.png"
+                        TileMode="Tile"
+                        Viewport="0,0,64,64"
+                        ViewportUnits="Absolute"
+                        Opacity="0.04" />
+            </Grid.Background>
+
+            <!-- Scanline Layer -->
+            <Rectangle VerticalAlignment="Stretch"
+                   HorizontalAlignment="Stretch"
+                   Opacity="0.06">
+                <Rectangle.Fill>
+                    <DrawingBrush TileMode="Tile"
+                              Viewport="0,0,1,3"
+                              ViewportUnits="Absolute">
+                        <DrawingBrush.Drawing>
+                            <GeometryDrawing Brush="#2200FFFF">
+                                <GeometryDrawing.Geometry>
+                                    <RectangleGeometry Rect="0,0,1,1"/>
+                                </GeometryDrawing.Geometry>
+                            </GeometryDrawing>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+        </Grid>
     </Grid>
 </Window>
 

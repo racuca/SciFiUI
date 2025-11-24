@@ -797,6 +797,10 @@ namespace SciFiConsoleWpf
                 // 오른쪽 버튼은 지도 드래그 용으로 그냥 GMap에 넘김
                 // (아무 것도 안 해도 DragButton = Right 덕분에 드래그 동작)
                 // 필요하면 여기서 우클릭 메뉴 띄우거나, 전체 Clear 같은 동작도 가능
+                var posOnMap = e.GetPosition(MapControl);
+                var posOnHUD = MapControl.TranslatePoint(posOnMap, HudOverlay);
+
+                PlayTargetPulse(posOnHUD);
             }
         }
 
@@ -976,7 +980,7 @@ namespace SciFiConsoleWpf
 
         private void MapControl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            Console.WriteLine("Mouse Left clicked");
+            /*Console.WriteLine("Mouse Left clicked");
 
             // 진짜 왼쪽 버튼일 때만 동작
             if (e.ChangedButton != MouseButton.Left)
@@ -994,7 +998,86 @@ namespace SciFiConsoleWpf
             var latLng = MapControl.FromLocalToLatLng((int)pMap.X, (int)pMap.Y);
 
             CreateDetailBox(latLng, pOverlay);
+            */
 
+            var posOnMap = e.GetPosition(MapControl);
+            var posOnHUD = MapControl.TranslatePoint(posOnMap, HudOverlay);
+
+            PlayTargetPulse(posOnHUD);
+        }
+
+        private void PlayTargetPulse(Point screenPos)
+        {
+            double size = 20;      // 초기 크기
+            double finalSize = 200; // 최대 크기
+
+            // 동심원 3개
+            for (int i = 0; i < 3; i++)
+            {
+                var ellipse = new Ellipse
+                {
+                    Width = size,
+                    Height = size,
+                    Stroke = new SolidColorBrush(Color.FromRgb(0x18, 0xE4, 0xFF)),
+                    StrokeThickness = 1.5,
+                    Opacity = 0.6
+                };
+
+                TargetPulseCanvas.Children.Add(ellipse);
+
+                // 초기 위치
+                Canvas.SetLeft(ellipse, screenPos.X - size / 2);
+                Canvas.SetTop(ellipse, screenPos.Y - size / 2);
+
+                // 애니메이션 설정
+                var sb = new Storyboard();
+
+                double delay = i * 0.2; // 각 원이 조금씩 늦게 시작
+
+                // 크기 증가 애니메이션
+                var widthAnim = new DoubleAnimation(size, finalSize,
+                    new System.Windows.Duration(TimeSpan.FromSeconds(0.8)))
+                {
+                    BeginTime = TimeSpan.FromSeconds(delay),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                };
+                Storyboard.SetTarget(widthAnim, ellipse);
+                Storyboard.SetTargetProperty(widthAnim, new PropertyPath("Width"));
+
+                var heightAnim = new DoubleAnimation(size, finalSize,
+                    new System.Windows.Duration(TimeSpan.FromSeconds(0.8)))
+                {
+                    BeginTime = TimeSpan.FromSeconds(delay),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                };
+                Storyboard.SetTarget(heightAnim, ellipse);
+                Storyboard.SetTargetProperty(heightAnim, new PropertyPath("Height"));
+
+                // 투명도 감소
+                var opAnim = new DoubleAnimation(0.6, 0.0,
+                    new System.Windows.Duration(TimeSpan.FromSeconds(0.8)))
+                {
+                    BeginTime = TimeSpan.FromSeconds(delay)
+                };
+                Storyboard.SetTarget(opAnim, ellipse);
+                Storyboard.SetTargetProperty(opAnim, new PropertyPath("Opacity"));
+
+                // 애니메이션 중 위치 보정 (크기 커지니까 좌표도 보정)
+                widthAnim.CurrentTimeInvalidated += (s, e) =>
+                {
+                    double w = ellipse.Width;
+                    Canvas.SetLeft(ellipse, screenPos.X - w / 2);
+                    Canvas.SetTop(ellipse, screenPos.Y - w / 2);
+                };
+
+                sb.Children.Add(widthAnim);
+                sb.Children.Add(heightAnim);
+                sb.Children.Add(opAnim);
+
+                sb.Completed += (s, e) => TargetPulseCanvas.Children.Remove(ellipse);
+
+                sb.Begin();
+            }
         }
 
         private void MapControl_OnMapDrag()
