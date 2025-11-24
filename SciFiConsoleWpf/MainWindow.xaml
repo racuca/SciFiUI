@@ -215,9 +215,19 @@
         </Grid>
 
         <!-- ========== 좌측 패널 ========== -->
-        <StackPanel Grid.Row="1" Grid.Column="0" Margin="8,0,4,0">
+        <Grid Grid.Row="1" Grid.Column="0" Margin="8,0,4,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- POWER SYSTEM -->
+                <RowDefinition Height="Auto"/>
+                <!-- SIGNAL ANALYTICS -->
+                <RowDefinition Height="Auto"/>
+                <!-- SIGNAL ANALYTICS -->
+                <RowDefinition Height="*"/>
+                <!-- EVENT LOG: 남는 공간 전부 차지 -->
+            </Grid.RowDefinitions>
             <!-- 모듈 1: POWER SYSTEM -->
-            <Border Style="{StaticResource ModulePanel}" Height="170">
+            <Border Grid.Row="0" Style="{StaticResource ModulePanel}" Height="170">
                 <StackPanel Name="CPURAMPanel">
                     <TextBlock Text="POWER SYSTEM"
                    Foreground="{StaticResource TextPrimary}"
@@ -286,9 +296,8 @@
 
                 </StackPanel>
             </Border>
-
             <!-- 모듈 2: 작은 그래프 자리 (비어있어도 됨) -->
-            <Border Style="{StaticResource ModulePanel}" Height="190">
+            <Border Grid.Row="1" Style="{StaticResource ModulePanel}" Height="190">
                 <Grid Margin="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -398,7 +407,7 @@
                 </Grid>
             </Border>
             <!-- 모듈 4번째 Row: 3겹 영역 그래프 -->
-            <Border Style="{StaticResource ModulePanel}" Height="190">
+            <Border Grid.Row="2" Style="{StaticResource ModulePanel}" Height="190">
                 <Grid Margin="0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -455,15 +464,15 @@
                 </Grid>
             </Border>
             <!-- 모듈 3: 로그 창 -->
-            <Border Style="{StaticResource ModulePanel}" VerticalAlignment="Stretch">
+            <Border Grid.Row="3" Style="{StaticResource ModulePanel}" 
+                    VerticalAlignment="Stretch">
                 <StackPanel>
                     <TextBlock Text="EVENT LOG"
                    Foreground="{StaticResource TextPrimary}"
                    FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
                     <ListBox x:Name="EventLogList"
                  Background="Transparent"
-                 BorderThickness="0"
-                             Height="100"
+                 BorderThickness="0" 
                  Foreground="{StaticResource TextSecondary}"
                  FontSize="10">
                         <ListBox.ItemContainerStyle>
@@ -475,7 +484,7 @@
                     </ListBox>
                 </StackPanel>
             </Border>
-        </StackPanel>
+        </Grid>
 
         <!-- ========== 중앙 패널 (지도/메인 화면) ========== -->
         <Border Grid.Row="1" Grid.Column="1" Margin="4,0,4,0"

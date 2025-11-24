@@ -931,10 +931,10 @@ namespace SciFiConsoleWpf
 
             if (diff < tolerance)
             {
-                
-                RadarTargetDot.Visibility = Visibility.Visible; 
+                if (RadarTargetDot.Visibility == Visibility.Hidden)
+                    AddLogEntry($"RADAR TARGET DETECTED AT {targetDeg:0}°");
 
-                AddLogEntry($"RADAR TARGET DETECTED AT {targetDeg:0}°");
+                RadarTargetDot.Visibility = Visibility.Visible; 
             }
             else
             {
