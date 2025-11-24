@@ -121,6 +121,19 @@ namespace SciFiConsoleWpf
 
         #endregion
 
+        #region 항공기 HUD - 텔레메트리 + 홀로그램
+
+        // Hologram-like overlay elements
+        private Ellipse _holoOuterRing;
+        private Ellipse _holoInnerRing;
+        private Line _holoForwardLine;
+        private TextBlock _yawText, _pitchText, _rollText;
+
+
+        #endregion
+
+
+
 
         public MainWindow()
         {
@@ -665,6 +678,9 @@ namespace SciFiConsoleWpf
                 AircraftCanvas.Children.Add(poly);
             }
 
+            CreateHologramOverlay();
+
+
             // 4) 회전 타이머 시작 (기존과 동일)
             _aircraftTimer = new DispatcherTimer
             {
@@ -672,6 +688,91 @@ namespace SciFiConsoleWpf
             };
             _aircraftTimer.Tick += AircraftTimer_Tick;
             _aircraftTimer.Start();
+
+
+        }
+
+        private void CreateHologramOverlay()
+        {
+            if (_holoOuterRing != null) return; // 한 번만 생성
+
+            double cw = AircraftCanvas.ActualWidth;
+            double ch = AircraftCanvas.ActualHeight;
+            if (cw <= 0 || ch <= 0)
+            {
+                // 아직 로딩 전이면 Loaded 이후 다시 호출
+                AircraftCanvas.Loaded += (s, e) => CreateHologramOverlay();
+                return;
+            }
+
+            double size = Math.Min(cw, ch) * 0.9;
+            double cx = cw / 2.0;
+            double cy = ch / 2.0 + 10;
+
+            // 바깥 링
+            _holoOuterRing = new Ellipse
+            {
+                Width = size,
+                Height = size,
+                Stroke = new SolidColorBrush(Color.FromArgb(0x66, 0x18, 0xE4, 0xFF)),
+                StrokeThickness = 1.2,
+                Fill = Brushes.Transparent
+            };
+            Canvas.SetLeft(_holoOuterRing, cx - size / 2);
+            Canvas.SetTop(_holoOuterRing, cy - size / 2);
+            AircraftCanvas.Children.Add(_holoOuterRing);
+
+            // 안쪽 링
+            _holoInnerRing = new Ellipse
+            {
+                Width = size * 0.55,
+                Height = size * 0.55,
+                Stroke = new SolidColorBrush(Color.FromArgb(0x44, 0x18, 0xE4, 0xFF)),
+                StrokeThickness = 1.0,
+                Fill = Brushes.Transparent
+            };
+            Canvas.SetLeft(_holoInnerRing, cx - _holoInnerRing.Width / 2);
+            Canvas.SetTop(_holoInnerRing, cy - _holoInnerRing.Height / 2);
+            AircraftCanvas.Children.Add(_holoInnerRing);
+
+            // 전방 방향 벡터(Forward Line)
+            _holoForwardLine = new Line
+            {
+                Stroke = new SolidColorBrush(Color.FromArgb(0xAA, 0x18, 0xE4, 0xFF)),
+                StrokeThickness = 1.4
+            };
+            AircraftCanvas.Children.Add(_holoForwardLine);
+
+            // YAW / PITCH / ROLL 텍스트
+            _yawText = new TextBlock
+            {
+                Foreground = (Brush)FindResource("TextSecondary"),
+                FontSize = 9,
+                Text = "YAW 000°"
+            };
+            _pitchText = new TextBlock
+            {
+                Foreground = (Brush)FindResource("TextSecondary"),
+                FontSize = 9,
+                Text = "PITCH 000°"
+            };
+            _rollText = new TextBlock
+            {
+                Foreground = (Brush)FindResource("TextSecondary"),
+                FontSize = 9,
+                Text = "ROLL 000°"
+            };
+
+            Canvas.SetLeft(_yawText, 6);
+            Canvas.SetTop(_yawText, ch - 42);
+            Canvas.SetLeft(_pitchText, 6);
+            Canvas.SetTop(_pitchText, ch - 28);
+            Canvas.SetLeft(_rollText, 6);
+            Canvas.SetTop(_rollText, ch - 14);
+
+            AircraftCanvas.Children.Add(_yawText);
+            AircraftCanvas.Children.Add(_pitchText);
+            AircraftCanvas.Children.Add(_rollText);
         }
 
         private void AircraftTimer_Tick(object sender, EventArgs e)
@@ -745,6 +846,59 @@ namespace SciFiConsoleWpf
                 }
                 poly.Points = pts;
             }
+
+            UpdateHologramOverlay(yaw, pitch, roll);
+        }
+
+        private void UpdateHologramOverlay(double yaw, double pitch, double roll)
+        {
+            if (_holoOuterRing == null || _holoForwardLine == null ||
+                _yawText == null || _pitchText == null || _rollText == null)
+                return;
+
+            double cw = AircraftCanvas.ActualWidth;
+            double ch = AircraftCanvas.ActualHeight;
+            if (cw <= 0 || ch <= 0) return;
+
+            double cx = cw / 2.0;
+            double cy = ch / 2.0 + 10;
+            double radius = _holoOuterRing.Width / 2.0 * 0.9;
+
+            // 전방 벡터: yaw 기준으로 링 안쪽에 선 하나
+            double ex = cx + Math.Sin(yaw) * radius;
+            double ey = cy - Math.Cos(yaw) * radius;
+
+            _holoForwardLine.X1 = cx;
+            _holoForwardLine.Y1 = cy;
+            _holoForwardLine.X2 = ex;
+            _holoForwardLine.Y2 = ey;
+
+            // 링 위치가 리사이즈 시에도 따라오도록 재보정
+            Canvas.SetLeft(_holoOuterRing, cx - _holoOuterRing.Width / 2);
+            Canvas.SetTop(_holoOuterRing, cy - _holoOuterRing.Height / 2);
+            Canvas.SetLeft(_holoInnerRing, cx - _holoInnerRing.Width / 2);
+            Canvas.SetTop(_holoInnerRing, cy - _holoInnerRing.Height / 2);
+
+            // 각도 텍스트 (라디안 → 도)
+            double yawDeg = yaw * 180.0 / Math.PI;
+            double pitchDeg = pitch * 180.0 / Math.PI;
+            double rollDeg = roll * 180.0 / Math.PI;
+
+            // -180~+180 범위 정규화
+            yawDeg = NormalizeAngle(yawDeg);
+            pitchDeg = NormalizeAngle(pitchDeg);
+            rollDeg = NormalizeAngle(rollDeg);
+
+            _yawText.Text = $"YAW   {yawDeg,6:0.0}°";
+            _pitchText.Text = $"PITCH {pitchDeg,6:0.0}°";
+            _rollText.Text = $"ROLL  {rollDeg,6:0.0}°";
+        }
+
+        private double NormalizeAngle(double deg)
+        {
+            while (deg > 180) deg -= 360;
+            while (deg < -180) deg += 360;
+            return deg;
         }
 
         /// <summary>
