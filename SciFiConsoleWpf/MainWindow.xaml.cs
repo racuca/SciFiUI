@@ -369,6 +369,10 @@ namespace SciFiConsoleWpf
                 _gpuDisplayValue += (gpuTarget - _gpuDisplayValue) * 0.3;
                 _gpuScale.ScaleX = 0.05 + _gpuDisplayValue * 0.95;
 
+                if (ram > 80)
+                    AddLogEntry($"RAM USAGE HIGH: {ram:0.0}%");
+
+
                 if (_powerDisplayMode == PowerDisplayMode.Ring)
                 {
                     double core0Usage = _cpuScales[0].ScaleX * 100.0;
@@ -600,10 +604,10 @@ namespace SciFiConsoleWpf
             {
                 // 1) 데모용 값 생성 (나중에 실제 값으로 교체)
                 // 대략 60~100% 사이에서 왔다 갔다 하는 느낌
-                double uplink = 60 + _rand.NextDouble() * 40;    // 60~100
-                double downlink = 55 + _rand.NextDouble() * 45;  // 55~100
+                double uplink = 20 + _rand.NextDouble() * 40;    // 20~100
+                double downlink = 20 + _rand.NextDouble() * 45;  // 20~100
 
-                double pktLoss = _rand.NextDouble() * 3.0;       // 0~3 %
+                double pktLoss = _rand.NextDouble() * 50.0;       // 0~50 %
                 double latency = 30 + _rand.NextDouble() * 150;  // 30~180 ms
 
                 // 2) 막대 (0~1 정규화 → ScaleX)
@@ -615,7 +619,7 @@ namespace SciFiConsoleWpf
                 LatencyText.Text = $"{latency:0} ms";
 
                 // 색상: 초록/노랑/빨강 간단 룰
-                PktLossIndicator.Fill = GetStatusColor(pktLoss, 1.0, 3.0);   // <1% 초록, <3% 노랑, 나머지 빨강
+                PktLossIndicator.Fill = GetStatusColor(pktLoss, 1.0, 25.0);   // <1% 초록, <3% 노랑, 나머지 빨강
                 LatencyIndicator.Fill = GetStatusColor(latency, 120, 250);   // <120ms 초록, <250ms 노랑, 나머지 빨강
 
                 // 4) 웨이브폼: uplink 품질 기반으로 히스토리 추가
@@ -1126,7 +1130,7 @@ namespace SciFiConsoleWpf
         private void MapControl_MouseDown(object sender, MouseButtonEventArgs e)
         {
             // 실제 어떤 버튼이 눌렸는지 여기서 정확히 알 수 있음
-            AddLogEntry($"MouseDown ChangedButton={e.ChangedButton}, Left={e.LeftButton}, Right={e.RightButton}");
+            //AddLogEntry($"MouseDown ChangedButton={e.ChangedButton}, Left={e.LeftButton}, Right={e.RightButton}");
 
             // 왼쪽 버튼일 때만 타겟/상세박스 생성
             if (e.ChangedButton == MouseButton.Right)
@@ -1743,13 +1747,13 @@ namespace SciFiConsoleWpf
         /// <param name="e"></param>
         private void btnArm_Click(object sender, RoutedEventArgs e)
         {
-            AddLogEntry("UAV#03  ARM COMMAND SENT");
+            AddLogEntry("UAV#01  ARM COMMAND SENT");
             LinkLed.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Lime);
         }
 
         private void btnDisarm_Click(object sender, RoutedEventArgs e)
         {
-            AddLogEntry("UAV#03  DISARM COMMAND SENT");
+            AddLogEntry("UAV#01  DISARM COMMAND SENT");
             LinkLed.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0x4D, 0x4D));
         }
 
@@ -1801,11 +1805,8 @@ namespace SciFiConsoleWpf
             
             if (!videoInitialized)
             {
-                Task.Run(() =>
-                {
-                    InitVideo();
-                    videoInitialized = true;
-                });
+                InitVideo();
+                videoInitialized = true;
             }
         }
 
