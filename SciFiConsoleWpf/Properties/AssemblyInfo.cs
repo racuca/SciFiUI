@@ -8,11 +8,11 @@ using System.Windows;
 // 제어됩니다. 어셈블리와 관련된 정보를 수정하려면
 // 이러한 특성 값을 변경하세요.
 [assembly: AssemblyTitle("SciFiConsoleWpf")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("SciFi HUD Tool for Science Movies")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("MVPcoding")]
 [assembly: AssemblyProduct("SciFiConsoleWpf")]
-[assembly: AssemblyCopyright("Copyright ©  2025")]
+[assembly: AssemblyCopyright("Copyright ©  2025~")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
