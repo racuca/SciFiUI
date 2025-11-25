@@ -92,73 +92,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Data Stream Analyzer 바 애니메이션 -->
-        <Storyboard x:Key="DataStreamAnimations">
-
-            <!-- 각 바마다 ScaleY를 올렸다 내렸다 반복 -->
-            <DoubleAnimation Storyboard.TargetName="DataBar0Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.2" To="1.0"
-                         Duration="0:0:0.7"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever" />
-
-            <DoubleAnimation Storyboard.TargetName="DataBar1Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.3" To="0.9"
-                         Duration="0:0:0.5"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever"
-                         BeginTime="0:0:0.1" />
-
-            <DoubleAnimation Storyboard.TargetName="DataBar2Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.1" To="0.8"
-                         Duration="0:0:0.6"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever"
-                         BeginTime="0:0:0.2" />
-
-            <DoubleAnimation Storyboard.TargetName="DataBar3Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.4" To="1.0"
-                         Duration="0:0:0.4"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever"
-                         BeginTime="0:0:0.05" />
-
-            <DoubleAnimation Storyboard.TargetName="DataBar4Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.2" To="0.9"
-                         Duration="0:0:0.8"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever"
-                         BeginTime="0:0:0.15" />
-
-            <DoubleAnimation Storyboard.TargetName="DataBar5Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.3" To="0.7"
-                         Duration="0:0:0.45"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever"
-                         BeginTime="0:0:0.25" />
-
-            <DoubleAnimation Storyboard.TargetName="DataBar6Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.5" To="1.0"
-                         Duration="0:0:0.9"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever"
-                         BeginTime="0:0:0.3" />
-
-            <DoubleAnimation Storyboard.TargetName="DataBar7Scale"
-                         Storyboard.TargetProperty="ScaleY"
-                         From="0.2" To="0.95"
-                         Duration="0:0:0.55"
-                         AutoReverse="True"
-                         RepeatBehavior="Forever"
-                         BeginTime="0:0:0.18" />
-        </Storyboard>
     </Window.Resources>
     <Grid x:Name="RootLayout">
         <Grid Background="{StaticResource BgMain}">
@@ -229,74 +162,184 @@
                     <!-- EVENT LOG: 남는 공간 전부 차지 -->
                 </Grid.RowDefinitions>
                 <!-- 모듈 1: POWER SYSTEM -->
-                <Border Grid.Row="0" Style="{StaticResource ModulePanel}" Height="170">
-                    <StackPanel Name="CPURAMPanel">
-                        <TextBlock Text="POWER SYSTEM"
-                       Foreground="{StaticResource TextPrimary}"
-                       FontSize="11" FontWeight="Bold"
-                       Margin="0,0,0,4"/>
+                <Border Grid.Row="0" x:Name="PowerSystemPanel" 
+                        Style="{StaticResource ModulePanel}" 
+                        Height="190">
+                    <Border.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Progress Bars" Click="MenuItem_ProgressBar_Click"/>
+                            <MenuItem Header="Ring Gauges" Click="MenuItem_RingGauge_Click"/>
+                        </ContextMenu>
+                    </Border.ContextMenu>
 
-                        <!-- CPU CORE 0 -->
-                        <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 0" />
-                        <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                            <Rectangle x:Name="Cpu0Bar"
-                           Height="8"
-                           VerticalAlignment="Bottom"
-                           Fill="#18E4FF">
-                                <Rectangle.RenderTransform>
-                                    <ScaleTransform x:Name="Cpu0Scale"
-                                        ScaleX="0.1" ScaleY="1"
-                                        CenterX="0" CenterY="0.5"/>
-                                </Rectangle.RenderTransform>
-                            </Rectangle>
-                        </Grid>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                    
+                        <TextBlock Grid.Row="0" Text="POWER SYSTEM"
+                           Foreground="{StaticResource TextPrimary}"
+                           FontSize="11" FontWeight="Bold"
+                           Margin="0,0,0,4"/>
 
-                        <!-- CPU CORE 1 -->
-                        <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 1" />
-                        <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                            <Rectangle x:Name="Cpu1Bar"
-                           Height="8"
-                           VerticalAlignment="Bottom"
-                           Fill="#3CFF9C">
-                                <Rectangle.RenderTransform>
-                                    <ScaleTransform x:Name="Cpu1Scale"
-                                        ScaleX="0.1" ScaleY="1"
-                                        CenterX="0" CenterY="0.5"/>
-                                </Rectangle.RenderTransform>
-                            </Rectangle>
-                        </Grid>
+                        <StackPanel Grid.Row="1" Name="CPURAMPanel">
 
-                        <!-- RAM -->
-                        <TextBlock Style="{StaticResource TinyLabel}" Text="RAM" />
-                        <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
-                            <Rectangle x:Name="RamBar"
-                           Height="8"
-                           VerticalAlignment="Bottom"
-                           Fill="#1F6FFF">
-                                <Rectangle.RenderTransform>
-                                    <ScaleTransform x:Name="RamScale"
-                                        ScaleX="0.1" ScaleY="1"
-                                        CenterX="0" CenterY="0.5"/>
-                                </Rectangle.RenderTransform>
-                            </Rectangle>
-                        </Grid>
+                            <!-- CPU CORE 0 -->
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 0" />
+                            <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                                <Rectangle x:Name="Cpu0Bar"
+                               Height="8"
+                               VerticalAlignment="Bottom"
+                               Fill="#18E4FF">
+                                    <Rectangle.RenderTransform>
+                                        <ScaleTransform x:Name="Cpu0Scale"
+                                            ScaleX="0.1" ScaleY="1"
+                                            CenterX="0" CenterY="0.5"/>
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
 
-                        <!-- GPU (일단 CPU 기반/가상 값, 나중에 진짜 GPU 카운터로 교체 가능) -->
-                        <TextBlock Style="{StaticResource TinyLabel}" Text="GPU" />
-                        <Grid Height="8" Background="#050A12">
-                            <Rectangle x:Name="GpuBar"
-                           Height="8"
-                           VerticalAlignment="Bottom"
-                           Fill="#FF6B6B">
-                                <Rectangle.RenderTransform>
-                                    <ScaleTransform x:Name="GpuScale"
-                                        ScaleX="0.1" ScaleY="1"
-                                        CenterX="0" CenterY="0.5"/>
-                                </Rectangle.RenderTransform>
-                            </Rectangle>
-                        </Grid>
+                            <!-- CPU CORE 1 -->
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="CORE 1" />
+                            <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                                <Rectangle x:Name="Cpu1Bar"
+                               Height="8"
+                               VerticalAlignment="Bottom"
+                               Fill="#3CFF9C">
+                                    <Rectangle.RenderTransform>
+                                        <ScaleTransform x:Name="Cpu1Scale"
+                                            ScaleX="0.1" ScaleY="1"
+                                            CenterX="0" CenterY="0.5"/>
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
 
-                    </StackPanel>
+                            <!-- RAM -->
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="RAM" />
+                            <Grid Height="8" Background="#050A12" Margin="0,0,0,4">
+                                <Rectangle x:Name="RamBar"
+                               Height="8"
+                               VerticalAlignment="Bottom"
+                               Fill="#1F6FFF">
+                                    <Rectangle.RenderTransform>
+                                        <ScaleTransform x:Name="RamScale"
+                                            ScaleX="0.1" ScaleY="1"
+                                            CenterX="0" CenterY="0.5"/>
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
+
+                            <!-- GPU (일단 CPU 기반/가상 값, 나중에 진짜 GPU 카운터로 교체 가능) -->
+                            <TextBlock Style="{StaticResource TinyLabel}" Text="GPU" />
+                            <Grid Height="8" Background="#050A12">
+                                <Rectangle x:Name="GpuBar"
+                               Height="8"
+                               VerticalAlignment="Bottom"
+                               Fill="#FF6B6B">
+                                    <Rectangle.RenderTransform>
+                                        <ScaleTransform x:Name="GpuScale"
+                                            ScaleX="0.1" ScaleY="1"
+                                            CenterX="0" CenterY="0.5"/>
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+                            </Grid>
+
+                        </StackPanel>
+
+                        <!-- ▼▼▼ 2) Ring 게이지 버전 패널 ▼▼▼ -->
+                        <UniformGrid x:Name="PowerSystemRingPanel"
+                            Grid.Row="1"
+                            Columns="2"
+                            Margin="0,4,0,0"
+                            Visibility="Collapsed">
+
+                            <!-- CORE 0 -->
+                            <Grid>
+                                <Canvas x:Name="RingCore0"
+                                Width="70" Height="70"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center"
+                                HorizontalAlignment="Center">
+                                    <TextBlock x:Name="RingCore0Value"
+                                    Text="0%"
+                                    Foreground="{StaticResource TextPrimary}"
+                                    FontSize="12"
+                                    FontWeight="Bold"
+                                    HorizontalAlignment="Center"/>
+                                    <TextBlock Text="CORE 0"
+                                    Foreground="{StaticResource TextSecondary}"
+                                    FontSize="9"
+                                    HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- CORE 1 -->
+                            <Grid>
+                                <Canvas x:Name="RingCore1"
+                    Width="70" Height="70"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                                    <TextBlock x:Name="RingCore1Value"
+                            Text="0%"
+                            Foreground="{StaticResource TextPrimary}"
+                            FontSize="12"
+                            FontWeight="Bold"
+                            HorizontalAlignment="Center"/>
+                                    <TextBlock Text="CORE 1"
+                            Foreground="{StaticResource TextSecondary}"
+                            FontSize="9"
+                            HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- RAM -->
+                            <Grid>
+                                <Canvas x:Name="RingRam"
+                    Width="70" Height="70"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                                    <TextBlock x:Name="RingRamValue"
+                            Text="0%"
+                            Foreground="{StaticResource TextPrimary}"
+                            FontSize="12"
+                            FontWeight="Bold"
+                            HorizontalAlignment="Center"/>
+                                    <TextBlock Text="RAM"
+                            Foreground="{StaticResource TextSecondary}"
+                            FontSize="9"
+                            HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- GPU -->
+                            <Grid>
+                                <Canvas x:Name="RingGpu"
+                    Width="70" Height="70"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                                    <TextBlock x:Name="RingGpuValue"
+                            Text="0%"
+                            Foreground="{StaticResource TextPrimary}"
+                            FontSize="12"
+                            FontWeight="Bold"
+                            HorizontalAlignment="Center"/>
+                                    <TextBlock Text="GPU"
+                            Foreground="{StaticResource TextSecondary}"
+                            FontSize="9"
+                            HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </UniformGrid>
+
+                    </Grid>
                 </Border>
                 <!-- 모듈 2: 작은 그래프 자리 (비어있어도 됨) -->
                 <Border Grid.Row="1" Style="{StaticResource ModulePanel}" Height="190">

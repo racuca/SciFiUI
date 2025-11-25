@@ -82,6 +82,21 @@ namespace SciFiConsoleWpf
         private ScaleTransform _ramScale;
         private ScaleTransform _gpuScale;
 
+        private enum PowerDisplayMode
+        {
+            Progress,
+            Ring
+        }
+
+        private PowerDisplayMode _powerDisplayMode = PowerDisplayMode.Progress;
+
+        // Ring Arc Path 핸들 (이전 코드)
+        private Path _ringCore0Arc;
+        private Path _ringCore1Arc;
+        private Path _ringRamArc;
+        private Path _ringGpuArc;
+
+
         // GPU 가상 값용
         private double _gpuDisplayValue = 0.0;
 
@@ -145,13 +160,15 @@ namespace SciFiConsoleWpf
                 new FrameworkPropertyMetadata(30)
             );
 
-            RadarCanvas.Loaded += (s, e) => InitRadar();
-
+            // 왼쪽 패널
             CPURAMPanel.Loaded += (s, e) => InitPowerSystemMonitor();
-
+            RingCore0.Loaded += (s, e) => InitPowerRings();
             SignalWaveHost.Loaded += (s, e) => InitSignalAnalytics();
 
+            // 중앙 패널
+            RadarCanvas.Loaded += (s, e) => InitRadar();
             AircraftCanvas.Loaded += (s, e) => InitAircraftModel();
+
         }
 
 
@@ -351,6 +368,15 @@ namespace SciFiConsoleWpf
                 // 약간 느리게 따라오는 필터 걸어서 부드럽게
                 _gpuDisplayValue += (gpuTarget - _gpuDisplayValue) * 0.3;
                 _gpuScale.ScaleX = 0.05 + _gpuDisplayValue * 0.95;
+
+                if (_powerDisplayMode == PowerDisplayMode.Ring)
+                {
+                    double core0Usage = _cpuScales[0].ScaleX * 100.0;
+                    double core1Usage = _cpuScales[1].ScaleX * 100.0;
+                    double ramUsage = ram;
+                    double gpuUsage = _gpuScale.ScaleX * 100.0;
+                    UpdatePowerRings(core0Usage, core1Usage, ramUsage, gpuUsage);
+                }
             }
             catch (Exception ex)
             {
@@ -358,6 +384,176 @@ namespace SciFiConsoleWpf
             }
         }
 
+        private void InitPowerRings()
+        {
+            if (_ringCore0Arc != null) return; // 이미 초기화됨
+
+            _ringCore0Arc = CreateRingMeter(RingCore0);
+            _ringCore1Arc = CreateRingMeter(RingCore1);
+            _ringRamArc = CreateRingMeter(RingRam);
+            _ringGpuArc = CreateRingMeter(RingGpu);
+
+            // 초기값 0%
+            UpdatePowerRings(0, 0, 0, 0);
+        }
+
+        /// <summary>
+        /// POWER SYSTEM 링 갱신
+        /// </summary>
+        private void UpdatePowerRings(double core0, double core1, double ram, double gpu)
+        {
+            if (_ringCore0Arc == null) return; // 아직 초기화 안 된 경우
+
+            SetRingValue(_ringCore0Arc, RingCore0, core0);
+            SetRingValue(_ringCore1Arc, RingCore1, core1);
+            SetRingValue(_ringRamArc, RingRam, ram);
+            SetRingValue(_ringGpuArc, RingGpu, gpu);
+
+            RingCore0Value.Text = $"{core0:0}%";
+            RingCore1Value.Text = $"{core1:0}%";
+            RingRamValue.Text = $"{ram:0}%";
+            RingGpuValue.Text = $"{gpu:0}%";
+        }
+
+        private void SetRingValue(Path arc, Canvas host, double percent)
+        {
+            if (arc == null || host == null) return;
+
+            percent = Math.Max(0, Math.Min(100, percent));
+            double value = percent / 100.0;
+
+            double w = host.Width;
+            double h = host.Height;
+            double cx = w / 2.0;
+            double cy = h / 2.0;
+            double radius = Math.Min(w, h) * 0.42;
+
+            // 게이지 아크 범위: -210° ~ +30° (총 240° 정도)
+            double startDeg = -210;
+            double sweepDeg = 240 * value;
+
+            double startRad = startDeg * Math.PI / 180.0;
+            double endRad = (startDeg + sweepDeg) * Math.PI / 180.0;
+
+            Point startPoint = new Point(
+                cx + radius * Math.Cos(startRad),
+                cy + radius * Math.Sin(startRad));
+
+            Point endPoint = new Point(
+                cx + radius * Math.Cos(endRad),
+                cy + radius * Math.Sin(endRad));
+
+            bool isLargeArc = sweepDeg > 180;
+
+            var fig = new PathFigure
+            {
+                StartPoint = startPoint,
+                IsClosed = false,
+                IsFilled = false
+            };
+
+            var seg = new ArcSegment
+            {
+                Point = endPoint,
+                Size = new Size(radius, radius),
+                IsLargeArc = isLargeArc,
+                SweepDirection = SweepDirection.Clockwise
+            };
+
+            fig.Segments.Clear();
+            fig.Segments.Add(seg);
+
+            var geom = new PathGeometry();
+            geom.Figures.Add(fig);
+            arc.Data = geom;
+        }
+
+        private Path CreateRingMeter(Canvas host)
+        {
+            double w = host.Width;
+            double h = host.Height;
+            double cx = w / 2.0;
+            double cy = h / 2.0;
+            double radius = Math.Min(w, h) * 0.42;
+            double thickness = 4.0;
+
+            // 배경 링
+            var bg = new Ellipse
+            {
+                Width = radius * 2,
+                Height = radius * 2,
+                Stroke = new SolidColorBrush(Color.FromRgb(0x14, 0x1A, 0x26)),
+                StrokeThickness = thickness,
+                Opacity = 0.9
+            };
+            Canvas.SetLeft(bg, cx - radius);
+            Canvas.SetTop(bg, cy - radius);
+            host.Children.Add(bg);
+
+            // 전면 아크 (값 표현)
+            var arc = new Path
+            {
+                Stroke = new SolidColorBrush(Color.FromRgb(0x18, 0xE4, 0xFF)),
+                StrokeThickness = thickness,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round
+            };
+            host.Children.Add(arc);
+
+            return arc;
+        }
+
+        private void SetPowerDisplayMode(PowerDisplayMode mode)
+        {
+            _powerDisplayMode = mode;
+
+            if (mode == PowerDisplayMode.Progress)
+            {
+                CPURAMPanel.Visibility = Visibility.Visible;
+                PowerSystemRingPanel.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                CPURAMPanel.Visibility = Visibility.Collapsed;
+                PowerSystemRingPanel.Visibility = Visibility.Visible;
+
+                // 링 초기화는 한 번만
+                if (_ringCore0Arc == null)
+                {
+                    InitPowerRings();
+                }
+            }
+        }
+
+        private void MenuItem_ProgressBar_Click(object sender, RoutedEventArgs e)
+        {
+            SetPowerDisplayMode(PowerDisplayMode.Progress);
+            UpdatePowerModeMenuChecks(sender, isRing: false);
+        }
+
+        private void MenuItem_RingGauge_Click(object sender, RoutedEventArgs e)
+        {
+            SetPowerDisplayMode(PowerDisplayMode.Ring);
+            UpdatePowerModeMenuChecks(sender, isRing: true);
+        }
+
+        private void UpdatePowerModeMenuChecks(object sender, bool isRing)
+        {
+            if (sender is MenuItem mi && mi.Parent is ContextMenu cm)
+            {
+                foreach (var item in cm.Items)
+                {
+                    if (item is MenuItem m)
+                    {
+                        if (m.Header.ToString().StartsWith("Progress"))
+                            m.IsChecked = !isRing;
+                        else if (m.Header.ToString().StartsWith("Ring"))
+                            m.IsChecked = isRing;
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// 시그널 애널리틱스 초기화
@@ -1743,6 +1939,11 @@ namespace SciFiConsoleWpf
 
             CameraImage.Source = null;
             CameraImage.Visibility = Visibility.Collapsed;
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+
         }
 
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
