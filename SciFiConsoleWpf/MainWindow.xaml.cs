@@ -1109,6 +1109,7 @@ namespace SciFiConsoleWpf
             // GMap 기본 설정
             GMap.NET.GMaps.Instance.Mode = AccessMode.ServerAndCache;
             MapControl.MapProvider = GMapProviders.BingSatelliteMap;
+            MapControl.CacheLocation = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\SciFiUI\\BingMapCache";
 
             // 시작 위치 (예: 서울 근처)
             MapControl.Position = new PointLatLng(37.5665, 126.9780);
